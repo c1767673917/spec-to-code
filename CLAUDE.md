@@ -277,7 +277,7 @@ Examples:
 - After coding, capture change summary via `git status --short` and `git diff --stat`
 
 ### 2. Implementation Log (path defined by your workflow)
-Before Step 3, choose the canonical file that will store Codex’s implementation log (e.g. `.claude/specs/{feature}/codex-backend.md`, `.claude/specs/{feature}/04-backend/implementation.md`, etc.) and state that path inside the prompt. Whatever path you choose, it **must** contain:
+Before Step 3, choose the canonical file that will store Codex’s implementation log (e.g. `.claude/specs/{feature}/codex-backend.md`, `.claude/specs/{feature}/04-backend/implementation.md`, etc.) and state that path inside the prompt. Codex must write this file itself during the backend run—do **not** rely on downstream agents to create or edit it. Whatever path you choose, it **must** contain:
 - Summary (sprint, tasks completed, files modified, test coverage %)
 - Change Summary (git status --short output, git diff --stat output, per-file notes highlighting added/modified/deleted files with reasons)
 - Implemented Features (with file paths, test results, API endpoints)
@@ -288,7 +288,7 @@ Before Step 3, choose the canonical file that will store Codex’s implementatio
 Record this path as `IMPLEMENTATION_LOG_PATH`; you will reference it in later steps.
 
 ### 3. Codex Output JSON (path defined by your workflow)
-Similarly, define and announce a canonical JSON file (e.g. `.claude/specs/{feature}/04-backend/codex-output.json`, `.claude/specs/{feature}/codex-output.json`, etc.). That JSON must follow this schema regardless of location:
+Similarly, define and announce a canonical JSON file (e.g. `.claude/specs/{feature}/04-backend/codex-output.json`, `.claude/specs/{feature}/codex-output.json`, etc.). Codex must write this JSON before finishing; orchestrators only verify it. That JSON must follow this schema regardless of location:
 ```json
 {
   "timestamp": "ISO 8601",

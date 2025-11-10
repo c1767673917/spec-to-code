@@ -173,7 +173,7 @@ Both workflows enforce Codex MCP for all backend code generation.
 
 ### Codex Output Documentation
 
-Each Codex call generates two files:
+Each Codex call generates two files, and **Codex must write them during the same run that produces the backend code**—other agents only verify their contents:
 
 1. **codex-backend.md** - Implementation log
    - Task summary

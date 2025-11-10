@@ -171,11 +171,11 @@ After achieving 90+ quality score:
   - Explicitly state: "Codex must implement every backend/API/database change. The local agent will only handle frontend/glue tasks."
   - Add **OUTPUT REQUIREMENTS (MANDATORY)**:
     - Implement backend code + tests directly in the repository, following project structure.
-    - Write `IMPLEMENTATION_LOG_PATH = ./.claude/specs/{feature_name}/codex-backend.md` including:
+    - Have Codex itself write `IMPLEMENTATION_LOG_PATH = ./.claude/specs/{feature_name}/codex-backend.md` during the same run (do NOT defer to downstream agents). The log must include:
       - Summary, Implemented Features, Technical Decisions, QA notes.
       - Change Summary: `git status --short`, `git diff --stat`, and per-file notes (added/modified/deleted with reasons).
       - API documentation excerpt: endpoints, methods, request/response schema, auth, error codes. If endpoints changed, also generate `api-docs.md` (see below).
-    - Write `CODEX_OUTPUT_PATH = ./.claude/specs/{feature_name}/codex-output.json` with fields:
+    - Have Codex itself write `CODEX_OUTPUT_PATH = ./.claude/specs/{feature_name}/codex-output.json` with fields:
       - `timestamp`, `status`, `tasks_completed`, `files_changed`, `tests_written`, `tests_passing`, `coverage_percent`,
       - `change_summary` { `git_status`[], `git_diff_stat`[], `files`[] }, `questions`[], `self_review` flags (`constraints_followed`, `all_tasks_completed`, `tests_passing`, `api_contract_matched`).
     - If API endpoints are created/modified, also produce `./.claude/specs/{feature_name}/api-docs.md` including: endpoints list, request params (name/type/required/validation), success/failed responses, auth method, error codes.
@@ -183,10 +183,10 @@ After achieving 90+ quality score:
 3. **Run Codex**
   - Execute `mcp__codex_cli__ask_codex` with the prompt.
   - Answer follow-up questions until Codex produces complete backend code + tests and required artifacts.
-4. **Persist Evidence**
-  - Save prompt, Codex output, and QA notes to `./.claude/specs/{feature_name}/codex-backend.md`.
-  - Save structured summary to `./.claude/specs/{feature_name}/codex-output.json`.
-  - If APIs changed, save `./.claude/specs/{feature_name}/api-docs.md`.
+4. **Verify Codex Artifacts**
+  - Confirm Codex recorded its prompt, responses, and QA notes in `./.claude/specs/{feature_name}/codex-backend.md`; if anything is missing or stale, rerun Codex to fix it rather than authoring the file yourself.
+  - Confirm Codex populated `./.claude/specs/{feature_name}/codex-output.json` with the structured summary.
+  - If APIs changed, confirm `./.claude/specs/{feature_name}/api-docs.md` exists with the required details.
   - Apply Codex's changes to the repository (files, migrations, tests).
 5. **Validate & Gate**
   - Verify `codex-backend.md` and `codex-output.json` exist and are up to date; `codex-output.json.status != "failed"`.
