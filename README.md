@@ -46,6 +46,7 @@ graph LR
 
 - **🎯 Requirements-First**: Automatically generates detailed technical specifications
 - **🧠 Codex Backend**: All backend/API/database development enforced through Codex MCP
+- **🤖 Frontend Sub-Agent**: Dedicated requirements-code agent reads all artifacts before writing frontend/glue code
 - **✅ Quality Gates**: 90% quality threshold with automatic optimization
 - **📁 Persistent Artifacts**: All documents saved to `.claude/specs/`
 - **🔄 Iterative Refinement**: Automatic improvement until quality met
@@ -56,7 +57,7 @@ graph LR
 | Agent | Responsibility | Output |
 |-------|----------------|--------|
 | **requirements-generate** | Analyze requirements and generate technical specs | `requirements-spec.md` |
-| **requirements-code** | Implement features (frontend integration + Codex backend) | Source code files |
+| **requirements-code** | Dedicated frontend/glue sub-agent that reads specs + Codex artifacts before coding | Source code files |
 | **requirements-review** | Functionality and integration review | `codex-review.md` |
 | **requirements-testing** | Functional validation and integration testing | `test-report.md` |
 

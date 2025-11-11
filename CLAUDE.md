@@ -115,15 +115,15 @@ Each agent has ONE clear job. Never overstep boundaries.
 ```
 Q1: Am I about to write backend code? (API, service, database, middleware)
     → YES: STOP. Go to "Execute Codex Call" below.
-    → NO: Proceed with frontend/docs work.
+    → NO: Launch the requirements-code sub-agent (after artifact intake) for any frontend/docs work.
 
 Q2: Am I fixing a backend bug?
     → YES: STOP. Go to "Execute Codex Call" below.
-    → NO: Proceed with frontend bug fix.
+    → NO: Launch the requirements-code sub-agent (after artifact intake) for any frontend bug fix.
 
 Q3: Am I reviewing backend code?
     → YES: STOP. Go to "Execute Codex Call" below.
-    → NO: Proceed with frontend review.
+    → NO: Launch the requirements-code sub-agent (after artifact intake) for any frontend review.
 ```
 
 **If you answered YES to any question above**:
