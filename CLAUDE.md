@@ -23,6 +23,20 @@ Each agent has ONE clear job. Never overstep boundaries.
 
 ---
 
+## Claude ↔ Codex Collaboration Blueprint
+
+- **Backend Ownership (Codex MCP)**: All API/service/database/middleware work, backend reviews (security, performance, quality), backend bug fixes, automated backend tests, and architecture recommendations always run through Codex.
+- **Frontend & Glue Ownership (Claude Code)**: All UI/state/routing work, orchestration scripts, frontend-focused tests, documentation for client usage, and workflow coordination stay with you; never delegate those to Codex.
+- **Mutual Review Loop**:
+  - After Codex ships backend changes it must deliver a change packet containing `git status --short`, `git diff --stat`, and per-file summaries (path, status, reasoning). You review API contracts, integration readiness, and compatibility before continuing.
+  - After you finish frontend/glue changes, generate the same change packet format plus API usage notes and send it to Codex for backend-side review (contract validation, data shape alignment, integration risks).
+- **Issue Reporting Standard**: Every finding exchanged during reviews must state `priority (High/Medium/Low)`, `problem type`, `context/lines`, `repro or observation`, and a concrete `fix recommendation`.
+- **Iteration Cap**: Each feedback loop (backend↔frontend) allows at most **3 iterations**. Track the counter; if unresolved after 3 exchanges, pause and escalate to the user.
+- **Autonomous File Access**: Codex MCP can open repository files/dirs itself (via `@relative/path` or autonomous exploration). Provide paths instead of pasting huge docs; only inline truly dynamic context.
+- **Default Codex Call Settings**: Always call `mcp__codex_cli__ask_codex` with `model=gpt-5-codex`, `fullAuto=true`, `sandbox=false`, `yolo=false`, `search=true`, and `approvalPolicy="untrusted"` so it can run filesystem/network operations without extra prompts.
+
+---
+
 # Repository Scanner Rules
 
 ## Output Limits
@@ -93,16 +107,17 @@ Each agent has ONE clear job. Never overstep boundaries.
 
 ## Role Definition
 
-**Codex MCP = Passive Tool**
-- Specialized in backend code generation
-- No decision-making, no planning
-- Receive task → Execute → Return result
+**Codex MCP = Autonomous Backend Partner**
+- Can independently read local files/dirs that you reference with `@path` (and may explore nearby code when needed)
+- Implements backend code, tests, security/perf reviews, and bug fixes end-to-end
+- Supports advanced reasoning, planning, documentation, and optional web search
+- Executes tooling commands under the MCP bridge using the provided approval policy
 
-**You (Claude Code) = Active Orchestrator**
-- Decide when to call Codex
-- Build complete context
-- Review Codex output
-- Manage iteration loop
+**You (Claude Code) = Workflow Lead**
+- Decide when to involve Codex (any backend-touching task)
+- Supply authoritative context + file paths so Codex knows what to read
+- Coordinate mutual reviews and track iteration counts
+- Handle frontend/glue implementation and respond to Codex feedback
 
 ---
 
@@ -206,8 +221,8 @@ Before touching Codex, gather *every* artifact that constrains backend work. Cov
 
 For each category:
 - Identify which file(s) supply the information (create/refresh them if missing).
-- Read them fully so you can pass the exact content to Codex.
-- Decide which repository files Codex must inspect directly; you will attach them via `@file` in Step 2.
+- Read them fully so you can summarize constraints accurately.
+- Decide which repository files Codex must inspect directly; list them in Step 2 using `@relative/path` (file or directory). Codex will open those paths autonomously, so you only need to inline content when data is generated on-the-fly or cannot be stored on disk.
 
 If a category truly does not exist for this task, call it out explicitly in the prompt and explain why (e.g., “No sprint plan yet—single ad-hoc fix”). Do **not** continue until every category is either read or formally declared absent.
 
@@ -242,11 +257,12 @@ If a category truly does not exist for this task, call it out explicitly in the 
 ## FRONTEND API CONTRACT (CRITICAL - EXACT MATCH REQUIRED)
 [paste the contract or documentation that defines request/response formats]
 
-## CODE CONTEXT (ATTACH VIA @file)
-- List every repository file Codex must open with `@file`, e.g.
-  - `@path/to/relevant/file1`
-  - `@path/to/relevant/file2`
-- For very large files, attach the critical slices and summarize what was omitted (and why).
+## CODE CONTEXT (ATTACH VIA @path)
+- List every repository file or directory Codex must open with `@relative/path`, e.g.
+  - `@internal/api`
+  - `@cmd/server/main.go`
+- Use directories for modules with many small files; Codex can recurse as needed.
+- For gigantic assets, attach only the critical slices (e.g., `@docs/api/README.md#L1-L120`) and summarize what was omitted (and why).
 
 **CRITICAL**: Backend responses MUST match:
 - Exact field names (camelCase/snake_case as specified)
@@ -358,7 +374,8 @@ Do not invent alternative filenames when running Requirements-Pilot.
 - `sandbox`: false
 - `fullAuto`: true
 - `yolo`: false
-- `search`: true (enable web search for best practices)
+- `approvalPolicy`: "untrusted" (grant Codex autonomy for file + network actions)
+- `search`: true (always enable web search and remote references)
 - `prompt`: [paste complete prompt from Step 2]
 
 **EXECUTION CHECKPOINT**:
@@ -399,6 +416,7 @@ Use the `mcp__codex_cli__ask_codex` tool with parameters above.
 □ Check coverage → meets target (>80%)?
 □ Review IMPLEMENTATION_LOG_PATH → technical decisions + change summary make sense?
 □ Check questions[] in CODEX_OUTPUT_PATH → any blockers?
+□ Forward Codex's change packet (git status/diff/per-file notes) and API docs to downstream agents before any frontend/glue work starts
 ```
 
 **IF ANY CHECK FAILS**:
@@ -452,6 +470,10 @@ Iterations = 3 AND Still has issues
   → Request user guidance
 ```
 
+**Finding Format (MANDATORY)**:
+- Each issue you raise back to Codex must include `priority (High|Medium|Low)`, `type`, `path:line context or repro`, `impact`, and `recommended fix/next step`.
+- Maintain an iteration counter per backend task; once you hit 3 review loops without satisfactory resolution, pause and escalate.
+
 ---
 
 ### Step 6: Backend Revision (If Step 5 requires changes)
@@ -491,6 +513,30 @@ Add to IMPLEMENTATION_LOG_PATH:
 **After Response**: Go back to Step 4 (Verify Output)
 
 **Iteration Limit**: If iteration = 3 and still failing → **STOP and ESCALATE TO USER**
+
+---
+
+## Frontend Completion → Codex Review Workflow
+
+1. **As soon as frontend/glue work is done**, capture a change packet with:
+   - `git status --short`
+   - `git diff --stat`
+   - Per-file notes (path, status, reason for change)
+   - Summary of API calls/data contracts touched, including payload/request/response examples.
+2. **Provide Codex with review context**:
+   - Reference all relevant frontend files via `@path`.
+   - Include the change packet plus any open questions or risks.
+   - Use the `# BACKEND CODE_REVIEW` prompt pattern so Codex knows it should review (not implement).
+3. **Run `mcp__codex_cli__ask_codex`** with the standard parameters (`approvalPolicy="untrusted"`, `search=true`) and wait for Codex’s feedback focusing on:
+   - API usage correctness
+   - Data format alignment
+   - Backend integration risks or missing endpoints
+4. **Handle Findings**:
+   - Record each Codex issue with priority/type/context/fix.
+   - Address them within 3 iterations; if the loop would exceed 3, stop and escalate.
+   - Update your implementation log with what changed during the fix.
+
+This review step is mandatory before closing any feature that touches backend APIs.
 
 ---
 

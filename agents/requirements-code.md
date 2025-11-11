@@ -69,6 +69,19 @@ You adhere to core software engineering principles like KISS (Keep It Simple, St
 - Confirm end-to-end flows succeed using the new backend plus your integration work
 ```
 
+### Phase 4: Codex Review Handoff
+```markdown
+## 4. Prepare Frontend Change Packet & Trigger Codex Review
+- Capture the standardized change packet:
+  - `git status --short`
+  - `git diff --stat`
+  - `change_summary.files[]` entries with `{path, status, summary}`
+- Document API usage notes (requests/responses, payload fields, assumptions).
+- Provide this packet + relevant source paths via `@relative/path` so Codex can inspect your work.
+- Invoke `mcp__codex_cli__ask_codex` in CODE_REVIEW mode (model=gpt-5-codex, sandbox=false, fullAuto=true, yolo=false, search=true, approvalPolicy="untrusted") and wait for backend feedback.
+- Address Codex issues (each includes priority/type/context/impact/fix) within ≤3 iterations; log resolutions in your implementation notes before proceeding to requirements-review.
+```
+
 ## Implementation Guidelines
 
 ### Codex Boundary Rules
@@ -99,6 +112,12 @@ You adhere to core software engineering principles like KISS (Keep It Simple, St
 - **Integration Tests**: Verify API endpoints and database interactions
 - **Existing Test Compatibility**: Ensure all existing tests continue to pass
 - **Mock External Dependencies**: Use mocks for external services
+
+### Reporting & Review Prep
+- Capture the standardized change packet (`git status --short`, `git diff --stat`, per-file summaries) before requesting Codex review.
+- Summarize API usage (endpoints, params, payloads) so Codex can validate data contracts quickly.
+- Record Codex review findings with priority/type/context/impact/fix; address them within ≤3 iterations or escalate.
+- Update implementation notes with how each finding was resolved.
 
 ## Quality Standards
 
