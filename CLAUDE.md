@@ -33,7 +33,7 @@ Each agent has ONE clear job. Never overstep boundaries.
 - **Issue Reporting Standard**: Every finding exchanged during reviews must state `priority (High/Medium/Low)`, `problem type`, `context/lines`, `repro or observation`, and a concrete `fix recommendation`.
 - **Iteration Cap**: Each feedback loop (backend↔frontend) allows at most **3 iterations**. Track the counter; if unresolved after 3 exchanges, pause and escalate to the user.
 - **Autonomous File Access**: Codex MCP can open repository files/dirs itself (via `@relative/path` or autonomous exploration). Provide paths instead of pasting huge docs; only inline truly dynamic context.
-- **Default Codex Call Settings**: Always call `mcp__codex_cli__ask_codex` with `model=gpt-5-codex`, `fullAuto=true`, `sandbox=false`, `yolo=false`, `search=true`, and `approvalPolicy="untrusted"` so it can run filesystem/network operations without extra prompts.
+- **Default Codex Call Settings**: Always call `mcp__codex-mcp__ask-codex` with `model=gpt-5-codex`, `fullAuto=true`, `sandbox=false`, `yolo=false`, `search=true`, and `approvalPolicy="untrusted"` so it can run filesystem/network operations without extra prompts. Give Codex the context and then let it decide which of its capabilities to exercise instead of constraining it to a single ask-only flow.
 
 ---
 
@@ -201,7 +201,7 @@ Q3: Am I reviewing backend code?
 If at ANY point you realize you're violating this rule, immediately output:
 ```
 ⚠️ VIOLATION DETECTED: I was about to [action] without calling Codex.
-CORRECTIVE ACTION: Stopping immediately and calling mcp__codex_cli__ask_codex.
+CORRECTIVE ACTION: Stopping immediately and calling mcp__codex-mcp__ask-codex.
 ```
 
 ---
@@ -367,7 +367,7 @@ Do not invent alternative filenames when running Requirements-Pilot.
 
 ### Step 3: EXECUTE Codex MCP Tool Call
 
-**NOW you must use the tool** `mcp__codex_cli__ask_codex`:
+**NOW you must use the tool** `mcp__codex-mcp__ask-codex`:
 
 **Parameters**:
 - `model`: "gpt-5-codex" (always use this)
@@ -384,7 +384,7 @@ Do not invent alternative filenames when running Requirements-Pilot.
 - Are you ready to call the tool NOW? → If YES, execute below
 
 **DO IT NOW**:
-Use the `mcp__codex_cli__ask_codex` tool with parameters above.
+Use the `mcp__codex-mcp__ask-codex` tool with parameters above.
 
 **DO NOT PROCEED** to Step 4 until tool returns response.
 
@@ -508,7 +508,7 @@ Add to IMPLEMENTATION_LOG_PATH:
 - **Changes Made**: [file paths and descriptions]
 ```
 
-**Execute**: Call `mcp__codex_cli__ask_codex` again with revision prompt
+**Execute**: Call `mcp__codex-mcp__ask-codex` again with revision prompt
 
 **After Response**: Go back to Step 4 (Verify Output)
 
@@ -527,7 +527,7 @@ Add to IMPLEMENTATION_LOG_PATH:
    - Reference all relevant frontend files via `@path`.
    - Include the change packet plus any open questions or risks.
    - Use the `# BACKEND CODE_REVIEW` prompt pattern so Codex knows it should review (not implement).
-3. **Run `mcp__codex_cli__ask_codex`** with the standard parameters (`approvalPolicy="untrusted"`, `search=true`) and wait for Codex’s feedback focusing on:
+3. **Run `mcp__codex-mcp__ask-codex`** with the standard parameters (`approvalPolicy="untrusted"`, `search=true`) and wait for Codex’s feedback focusing on:
    - API usage correctness
    - Data format alignment
    - Backend integration risks or missing endpoints

@@ -78,7 +78,7 @@ You adhere to core software engineering principles like KISS (Keep It Simple, St
   - `change_summary.files[]` entries with `{path, status, summary}`
 - Document API usage notes (requests/responses, payload fields, assumptions).
 - Provide this packet + relevant source paths via `@relative/path` so Codex can inspect your work.
-- Invoke `mcp__codex_cli__ask_codex` in CODE_REVIEW mode (model=gpt-5-codex, sandbox=false, fullAuto=true, yolo=false, search=true, approvalPolicy="untrusted") and wait for backend feedback.
+- Invoke `mcp__codex-mcp__ask-codex` in CODE_REVIEW mode (model=gpt-5-codex, sandbox=false, fullAuto=true, yolo=false, search=true, approvalPolicy="untrusted") and let the Codex agent select whichever review and analysis actions it needs before you proceed.
 - Address Codex issues (each includes priority/type/context/impact/fix) within ≤3 iterations; log resolutions in your implementation notes before proceeding to requirements-review.
 ```
 

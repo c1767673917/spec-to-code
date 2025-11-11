@@ -200,7 +200,7 @@ All frontend/glue coding must be delegated to the `requirements-code` sub-agent.
     - If API endpoints are created/modified, also produce `./.claude/specs/{feature_name}/api-docs.md` including: endpoints list, request params (name/type/required/validation), success/failed responses, auth method, error codes.
     - Commit message convention: `<type>(<scope>): <subject>` (e.g., `feat(auth): implement login API`); record these in logs (no push required).
 3. **Run Codex**
-  - Execute `mcp__codex_cli__ask_codex` with the prompt using parameters: `model=gpt-5-codex`, `sandbox=false`, `fullAuto=true`, `yolo=false`, `search=true`, `approvalPolicy="untrusted"`.
+  - Execute `mcp__codex-mcp__ask-codex` with the prompt using parameters: `model=gpt-5-codex`, `sandbox=false`, `fullAuto=true`, `yolo=false`, `search=true`, `approvalPolicy="untrusted"`, and let the Codex agent decide which of its capabilities to employ instead of forcing an ask-only interaction.
   - Answer follow-up questions until Codex produces complete backend code + tests and required artifacts.
 4. **Verify Codex Artifacts**
   - Confirm Codex recorded its prompt, responses, and QA notes in `./.claude/specs/{feature_name}/codex-backend.md`; if anything is missing or stale, rerun Codex to fix it rather than authoring the file yourself.
@@ -221,7 +221,7 @@ After Codex finishes backend work, run the following chain:
 
 ```
 1) requirements-code agent → Reads requirements-spec + codex-backend.md + codex-output.json (and architecture/api-docs if present) **before** touching the repository, then wires frontend/config/glue code and documents integration status.
-2) Codex MCP frontend review → Call `mcp__codex_cli__ask_codex` in `CODE_REVIEW` mode with the frontend change packet (git status/diff stat/per-file notes + API usage summary). Codex validates API usage/data formats and raises issues (priority/type/context/impact/fix). Address feedback within ≤3 iterations.
+2) Codex MCP frontend review → Call `mcp__codex-mcp__ask-codex` in `CODE_REVIEW` mode with the frontend change packet (git status/diff stat/per-file notes + API usage summary). Codex validates API usage/data formats and raises issues (priority/type/context/impact/fix). Address feedback within ≤3 iterations.
 3) requirements-review agent → Produces `./.claude/specs/{feature_name}/codex-review.md` with 0–100 score and a structured issue list (ID, severity, type, path:lines, description, impact, fix plan); returns the numeric score for gating.
 4) If review score < 90% → Loop back to requirements-code for fixes referencing review feedback (and re-run Codex review if frontend changes again).
 5) If score ≥ 90% → Enter Testing Decision Gate.
