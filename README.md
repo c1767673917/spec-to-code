@@ -70,8 +70,7 @@ Each run creates structured documentation:
 ├── 00-repo-scan.md           # Repository scan analysis
 ├── requirements-spec.md      # Technical specification
 ├── 02-architecture.md        # System architecture (standard/full; minimal embeds in brief)
-├── codex-backend.md          # Codex backend implementation log
-├── codex-output.json         # Codex output data
+├── codex-backend.md          # Codex backend implementation log + structured summary
 ├── codex-review.md           # Code review report
 └── test-report.md           # Testing validation report
 ```
@@ -133,8 +132,7 @@ graph LR
 .claude/specs/login-500-error/
 ├── 00-repo-scan.md           # Repository context
 ├── bugfix-log.md            # Problem analysis and fix log
-├── codex-backend.md          # Codex backend fix log (if applicable)
-├── codex-output.json         # Codex output data (if applicable)
+├── codex-backend.md          # Codex backend fix log (with structured summary, if applicable)
 └── verification-report.md   # Fix verification report
 ```
 
@@ -174,21 +172,13 @@ Both workflows enforce Codex MCP for all backend code generation.
 
 ### Codex Output Documentation
 
-Each Codex call generates two files, and **Codex must write them during the same run that produces the backend code**—other agents only verify their contents:
+Each Codex call now generates a single implementation log, and **Codex must write it during the same run that produces the backend code**—other agents only verify its contents:
 
-1. **codex-backend.md** - Implementation log
-   - Task summary
-   - Modified files list
-   - Technical decisions
-   - Review questions
+- **codex-backend.md** – Narrative log plus a `## Structured Summary` fenced JSON block
+  - Narrative: task summary, modified files list, technical decisions, QA notes/questions
+  - Structured Summary JSON: task completion status, tests/coverage, change packet, self-review flags
 
-2. **codex-output.json** - Structured data
-   - Task completion status
-   - Test coverage
-   - Change summary
-   - Self-review checklist
-
-If either artifact is missing or empty after a run, rerun Codex with the same prompt plus an explicit reminder to emit the files—manual backfilling is reserved only for outages that are documented in the manifest.
+If the log or the structured block is missing/empty after a run, rerun Codex with the same prompt plus an explicit reminder to emit it—manual backfilling is reserved only for outages documented in the manifest.
 
 ### Context Attachment Best Practice
 

@@ -75,21 +75,22 @@ Save scan results to: ./.claude/specs/{feature_name}/00-repo-scan.md"
   - `00-constraints.yaml` *(optional; only when constraints finalized)*
   - `01-requirements-brief.md`
     - Must embed a "System Architecture" section in the brief
-  - `requirements-diff.md` *(change log vs repository context)*
-  - `codex-backend.md` *(MANDATORY once Codex executed)*
-  - `codex-output.json` *(MANDATORY once Codex executed; structured result for automation)*
+  - `requirements-diff.md` *(gap-focused analysis; reference constraints instead of duplicating them)*
+  - `codex-backend.md` *(MANDATORY once Codex executed; contains narrative log **and** a `STRUCTURED SUMMARY` JSON block that replaces the former `codex-output.json`)*
   - `api-docs.md` *(only if API endpoints were created/modified)*
   - `codex-review.md` *(review report with 0–100 score and issue list; replaces `review-notes.md`)*
   - `qa-summary.md` *(only if tests executed)*
-  - `summary.md`
-  - `spec-manifest.json`
+  - `summary.md` *(executive overview only—link out to deeper docs instead of copying their content)*
+  - `spec-manifest.json` *(canonical index of artifacts; avoid repeating tech stack metadata elsewhere)*
 - **standard**: Includes minimal set plus detailed confirmations (`requirements-confirm.md`, `requirements-spec.md`) and agent transcripts, and a dedicated architecture document `02-architecture.md`.
 - **full**: Legacy exhaustive mode.
 - Sub-agents must refuse to emit artifacts not listed for the active profile; `review-notes.md` is deprecated in favor of `codex-review.md`.
+- When authoring `summary.md`, limit content to status, key decisions, blockers, and **links** to the deeper artifacts instead of copying their contents.  
+- When authoring `requirements-diff.md`, focus on delta analysis (e.g., repo scan findings vs. desired end state, risk checklist, TODOs) and reference the constraint file for authoritative stack details rather than duplicating them verbatim.
 
 ### Spec Manifest & Artifact Persistence
 - Create `./.claude/specs/{feature_name}/spec-manifest.json` immediately after deriving the feature slug.
-- Manifest format mirrors BMAD workflow (feature, doc_profile, generated_at, artifacts array).
+- Manifest format mirrors BMAD workflow (feature, doc_profile, generated_at, artifacts array) and acts as the **single source of truth** for metadata (timestamps, authors, quality gates). Other documents should reference the manifest instead of duplicating those details.
 - Delegate agents write their approved artifacts directly to the specified paths. Record `saved_by` and other notes in the manifest after verifying contents.
 - If any agent reports a write failure, troubleshoot and retry until persisted. Use ad-hoc fallbacks only when tooling prevents direct writes, and capture the reason in manifest notes.
 - When `doc_profile` is `standard` or `full`, include `02-architecture.md` in the artifacts list; when `minimal`, record that architecture is embedded within `01-requirements-brief.md`.
@@ -177,7 +178,7 @@ After achieving 90+ quality score:
 
 **ONLY execute this phase after receiving explicit user approval**
 
-All frontend/glue coding must be delegated to the `requirements-code` sub-agent. The orchestrator never writes frontend code directly; instead, launch the sub-agent with links to every relevant artifact (repository scan, requirements confirmation/spec, codex-backend.md, codex-output.json, api-docs.md, architecture docs). The sub-agent must explicitly read these documents before touching the codebase.
+All frontend/glue coding must be delegated to the `requirements-code` sub-agent. The orchestrator never writes frontend code directly; instead, launch the sub-agent with links to every relevant artifact (repository scan, requirements confirmation/spec, `codex-backend.md` with its structured block, `api-docs.md`, architecture docs). The sub-agent must explicitly read these documents before touching the codebase.
 
 ### Phase 2A: Codex Backend Implementation (MANDATORY BEFORE AGENTS)
 1. **Gather Context**
@@ -193,24 +194,21 @@ All frontend/glue coding must be delegated to the `requirements-code` sub-agent.
     - Implement backend code + tests directly in the repository, following project structure.
     - Have Codex itself write `IMPLEMENTATION_LOG_PATH = ./.claude/specs/{feature_name}/codex-backend.md` during the same run (do NOT defer to downstream agents). The log must include:
       - Summary, Implemented Features, Technical Decisions, QA notes.
-      - Change Summary: `git status --short`, `git diff --stat`, and per-file notes (added/modified/deleted with reasons).
+      - Change Summary: raw `git status --short`, `git diff --stat`, and per-file notes (added/modified/deleted with reasons).
+      - A dedicated `## Structured Summary` section whose fenced JSON payload exposes the automation fields formerly kept in `codex-output.json` (`timestamp`, `status`, `tasks_completed`, `files_changed`, `tests_written`, `tests_passing`, `coverage_percent`, `change_summary`, `questions`, `self_review` flags).
       - API documentation excerpt: endpoints, methods, request/response schema, auth, error codes. If endpoints changed, also generate `api-docs.md` (see below).
-    - Have Codex itself write `CODEX_OUTPUT_PATH = ./.claude/specs/{feature_name}/codex-output.json` with fields:
-      - `timestamp`, `status`, `tasks_completed`, `files_changed`, `tests_written`, `tests_passing`, `coverage_percent`,
-      - `change_summary` { `git_status`[], `git_diff_stat`[], `files`[] }, `questions`[], `self_review` flags (`constraints_followed`, `all_tasks_completed`, `tests_passing`, `api_contract_matched`).
     - If API endpoints are created/modified, also produce `./.claude/specs/{feature_name}/api-docs.md` including: endpoints list, request params (name/type/required/validation), success/failed responses, auth method, error codes.
     - Commit message convention: `<type>(<scope>): <subject>` (e.g., `feat(auth): implement login API`); record these in logs (no push required).
 3. **Run Codex**
   - Execute `mcp__codex-mcp__ask-codex` with the prompt using parameters: `model=gpt-5-codex`, `sandbox=false`, `fullAuto=true`, `yolo=false`, `search=true`, `approvalPolicy="untrusted"`, and let the Codex agent decide which of its capabilities to employ instead of forcing an ask-only interaction.
   - Answer follow-up questions until Codex produces complete backend code + tests and required artifacts.
 4. **Verify Codex Artifacts**
-  - Confirm Codex recorded its prompt, responses, and QA notes in `./.claude/specs/{feature_name}/codex-backend.md`; if anything is missing or stale, rerun Codex to fix it rather than authoring the file yourself.
-  - Confirm Codex populated `./.claude/specs/{feature_name}/codex-output.json` with the structured summary.
-  - If either codex-backend.md or codex-output.json is missing/empty after a run, treat it as a failed iteration: rerun Codex with the same prompt plus an explicit reminder to emit the artifacts. Manual backfilling is only allowed when Codex is unreachable and the outage is logged in the manifest.
+  - Confirm Codex recorded its prompt, responses, QA notes, and the `Structured Summary` JSON block in `./.claude/specs/{feature_name}/codex-backend.md`; if anything is missing or stale, rerun Codex to fix it rather than authoring the file yourself.
+  - If codex-backend.md is missing/empty, or its structured block is absent, treat the run as failed: rerun Codex with the same prompt plus an explicit reminder to emit the artifact. Manual backfilling is only allowed when Codex is unreachable and the outage is logged in the manifest.
   - If APIs changed, confirm `./.claude/specs/{feature_name}/api-docs.md` exists with the required details.
   - Apply Codex's changes to the repository (files, migrations, tests).
 5. **Validate & Gate**
-  - Verify `codex-backend.md` and `codex-output.json` exist and are up to date; `codex-output.json.status != "failed"`.
+  - Verify `codex-backend.md` exists, is up to date, and its `Structured Summary` block reports `status != "failed"`.
   - Verify `change_summary.git_status` and `git_diff_stat` populated; referenced files exist/compile.
   - If API endpoints were changed, verify `api-docs.md` exists with endpoints, request/response, auth, and error codes.
   - Verify tests were written/executed (`tests_passing` present). If missing, rerun Codex to add minimal tests.
@@ -222,7 +220,7 @@ All frontend/glue coding must be delegated to the `requirements-code` sub-agent.
 After Codex finishes backend work, run the following chain:
 
 ```
-1) requirements-code agent → Reads requirements-spec + codex-backend.md + codex-output.json (and architecture/api-docs if present) **before** touching the repository, then wires frontend/config/glue code and documents integration status.
+1) requirements-code agent → Reads requirements-spec + codex-backend.md (with structured data) and architecture/api-docs if present **before** touching the repository, then wires frontend/config/glue code and documents integration status.
 2) Codex MCP frontend review → Call `mcp__codex-mcp__ask-codex` in `CODE_REVIEW` mode with the frontend change packet (git status/diff stat/per-file notes + API usage summary). Codex validates API usage/data formats and raises issues (priority/type/context/impact/fix). Address feedback within ≤3 iterations.
 3) requirements-review agent → Produces `./.claude/specs/{feature_name}/codex-review.md` with 0–100 score and a structured issue list (ID, severity, type, path:lines, description, impact, fix plan); returns the numeric score for gating.
 4) If review score < 90% → Loop back to requirements-code for fixes referencing review feedback (and re-run Codex review if frontend changes again).
@@ -236,7 +234,6 @@ Each sub-agent receives:
 - Technology/stack constraints from requirements-confirm/spec
 - Integration requirements
 - `./.claude/specs/{feature_name}/codex-backend.md`
-- `./.claude/specs/{feature_name}/codex-output.json`
 - `./.claude/specs/{feature_name}/api-docs.md` *(if present)*
 
 ## Testing Decision Gate
@@ -330,8 +327,7 @@ All outputs saved to `./.claude/specs/{feature_name}/`:
 requirements-confirm.md # Requirements confirmation process
 requirements-spec.md   # Technical specifications
 02-architecture.md     # System architecture (standard/full; minimal embeds in brief)
-codex-backend.md       # Implementation log (prompt, response, change summary)
-codex-output.json      # Structured summary (status, changes, tests, questions, self-review)
+codex-backend.md       # Implementation log + Structured Summary JSON (status, changes, tests, questions, self-review)
 api-docs.md            # API docs (only if endpoints created/modified)
 codex-review.md        # Review report with score + issues (produced by requirements-review)
 ```

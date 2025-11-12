@@ -70,8 +70,7 @@ graph LR
 ├── 00-repo-scan.md           # 仓库扫描分析
 ├── requirements-spec.md      # 技术规格文档
 ├── 02-architecture.md        # 系统架构（standard/full；minimal 模式嵌入在 brief 中）
-├── codex-backend.md          # Codex 后端实现日志
-├── codex-output.json         # Codex 输出数据
+├── codex-backend.md          # Codex 后端实现日志 + 结构化摘要
 ├── codex-review.md           # 代码审查报告
 └── test-report.md           # 测试验证报告
 ```
@@ -133,8 +132,7 @@ graph LR
 .claude/specs/login-500-error/
 ├── 00-repo-scan.md           # 仓库上下文
 ├── bugfix-log.md            # 问题分析和修复日志
-├── codex-backend.md          # Codex 后端修复日志（如适用）
-├── codex-output.json         # Codex 输出数据（如适用）
+├── codex-backend.md          # Codex 后端修复日志（含结构化摘要，如适用）
 └── verification-report.md   # 修复验证报告
 ```
 
@@ -174,21 +172,13 @@ graph LR
 
 ### Codex 输出文档
 
-每次 Codex 调用生成两个文件，并且**必须由 Codex 在完成后端代码的同一次运行中写入**，其他代理只负责校验内容：
+每次 Codex 调用现在只生成一个文件，并且**必须由 Codex 在完成后端代码的同一次运行中写入**，其他代理只负责校验内容：
 
-1. **codex-backend.md** - 实现日志
-   - 任务摘要
-   - 修改文件列表
-   - 技术决策
-   - 审查问题
+- **codex-backend.md** - 实现日志 + `## Structured Summary` JSON  
+  - 叙事部分：任务摘要、修改文件列表、技术决策、审查问题  
+  - 结构化部分：任务完成状态、测试覆盖率、变更摘要、自检清单
 
-2. **codex-output.json** - 结构化数据
-   - 任务完成状态
-   - 测试覆盖率
-   - 变更摘要
-   - 自检清单
-
-如果运行结束后仍缺少任意一个文件，必须使用相同提示重新调用 Codex，并在提示中明确提醒其补写缺失文档；只有在 Codex 无法访问且已在 manifest 中记录故障时，才允许手工补齐。
+如果运行结束后缺少该文件或其结构化 JSON 区块，必须使用相同提示重新调用 Codex，并在提示中明确提醒其补写；只有在 Codex 无法访问且已在 manifest 中记录故障时，才允许手工补齐。
 
 ### 上下文传递最佳实践
 

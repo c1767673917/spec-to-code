@@ -301,11 +301,7 @@ Before Step 3, choose the canonical file that will store Codex’s implementatio
 - Technical Decisions (why you made certain choices)
 - Questions for Review (priority High/Medium/Low, context, your recommendation)
 - Self-Review Checklist (constraints compliance, tests status, coverage %)
-
-Record this path as `IMPLEMENTATION_LOG_PATH`; you will reference it in later steps.
-
-### 3. Codex Output JSON (path defined by your workflow)
-Similarly, define and announce a canonical JSON file (e.g. `.claude/specs/{feature}/04-backend/codex-output.json`, `.claude/specs/{feature}/codex-output.json`, etc.). Codex must write this JSON before finishing; orchestrators only verify it. That JSON must follow this schema regardless of location:
+- A `## Structured Summary` section whose fenced JSON payload follows this schema (replacing the old standalone `codex-output.json` file):
 ```json
 {
   "timestamp": "ISO 8601",
@@ -347,7 +343,7 @@ Similarly, define and announce a canonical JSON file (e.g. `.claude/specs/{featu
 ```
 ```
 
-Record this path as `CODEX_OUTPUT_PATH`. If your workflow mandates additional artifacts (manifest entries, review notes, QA summaries, etc.), declare them in the prompt and hold Codex accountable for writing them.
+Record this path as `IMPLEMENTATION_LOG_PATH`; you will reference it in later steps. If your workflow mandates additional artifacts (manifest entries, review notes, QA summaries, etc.), declare them in the prompt and hold Codex accountable for writing them.
 
 ---
 
@@ -356,7 +352,6 @@ Record this path as `CODEX_OUTPUT_PATH`. If your workflow mandates additional ar
 When executing inside the Requirements-Pilot workflow, use these canonical artifact paths to avoid conflicts with sub-agents and documentation:
 
 - `IMPLEMENTATION_LOG_PATH = ./.claude/specs/{feature}/codex-backend.md`
-- `CODEX_OUTPUT_PATH      = ./.claude/specs/{feature}/codex-output.json`
 - If backend APIs are created/modified: `./.claude/specs/{feature}/api-docs.md`
 - If `doc_profile` is standard/full: `ARCHITECTURE_PATH    = ./.claude/specs/{feature}/02-architecture.md` (for minimal, architecture is embedded within `01-requirements-brief.md`)
 
@@ -396,19 +391,18 @@ Use the `mcp__codex-mcp__ask-codex` tool with parameters above.
 **File Existence Verification**:
 ```
 □ IMPLEMENTATION_LOG_PATH exists (the exact file you defined in the prompt)
-□ CODEX_OUTPUT_PATH exists
 □ Backend code files exist in repository
 □ Test files exist in repository
 ```
 
 **Content Validation**:
 ```
-□ Read CODEX_OUTPUT_PATH → status is not "failed"
-□ Read CODEX_OUTPUT_PATH → tests_passing > 0
-□ Read CODEX_OUTPUT_PATH → change_summary.git_status & git_diff_stat populated
-□ Compare change_summary.files[] notes against actual repository edits
+□ Read IMPLEMENTATION_LOG_PATH → Structured Summary JSON `status` is not "failed"
+□ Structured Summary `tests_passing` > 0 (unless tests intentionally skipped with approval)
+□ Structured Summary `change_summary.git_status` & `git_diff_stat` populated
+□ Compare `change_summary.files[]` notes against actual repository edits
 □ Confirm every @file listed in the prompt is represented in change_summary or explicitly marked as read-only/no-change inside IMPLEMENTATION_LOG_PATH
-□ Verify IMPLEMENTATION_LOG_PATH documents all backend tasks and change summary details
+□ Verify IMPLEMENTATION_LOG_PATH narrative documents all backend tasks and decisions
 ```
 
 **Quality Checks**:
@@ -416,12 +410,12 @@ Use the `mcp__codex-mcp__ask-codex` tool with parameters above.
 □ Run tests → all passing?
 □ Check coverage → meets target (>80%)?
 □ Review IMPLEMENTATION_LOG_PATH → technical decisions + change summary make sense?
-□ Check questions[] in CODEX_OUTPUT_PATH → any blockers?
+□ Check Structured Summary `questions[]` → any blockers?
 □ Forward Codex's change packet (git status/diff/per-file notes) and API docs to downstream agents before any frontend/glue work starts
 ```
 
 **Missing Artifact Protocol**:
-If any required Codex-owned artifact (implementation log, output JSON, API docs) is missing or obviously stale after a run:
+If any required Codex-owned artifact (implementation log with Structured Summary, API docs) is missing or obviously stale after a run:
 1. Stop immediately — do **not** author or backfill the file yourself.
 2. Re-run `mcp__codex-mcp__ask-codex` with the same context plus an explicit reminder that the artifact must be written.
 3. Repeat the verification checklist. Only escalate to manual fixes if Codex is unavailable and you've recorded the outage in the manifest.
@@ -436,11 +430,11 @@ If any required Codex-owned artifact (implementation log, output JSON, API docs)
 ### Step 5: Review Codex Questions & Decide Next Action
 
 **Review change summary first**:
-- Inspect `CODEX_OUTPUT_PATH.change_summary` (git status, diff stat, per-file notes)
-- Cross-check against IMPLEMENTATION_LOG_PATH Change Summary
+- Inspect Structured Summary `change_summary` (git status, diff stat, per-file notes)
+- Cross-check against IMPLEMENTATION_LOG_PATH narrative
 - Note any unexpected edits before proceeding
 
-**Then read** `CODEX_OUTPUT_PATH` → `questions` array
+**Then read** Structured Summary `questions` array
 
 **For EACH question**:
 1. **Understand**: Read question + context + recommendation
