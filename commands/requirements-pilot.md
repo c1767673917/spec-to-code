@@ -99,7 +99,7 @@ Save scan results to: ./.claude/specs/{feature_name}/00-repo-scan.md"
   - Codex MCP owns backend/API/database implementation, backend bug fixes, backend-focused tests, backend reviews (security/perf/perf), and backend architecture recommendations.
   - Claude Code owns frontend/UI/state/glue work, frontend bug fixes, frontend tests, workflow orchestration, and specification stewardship.
 - **Immediate Backend Delegation**: The moment you detect backend coding/review/bugfix work, stop manual edits and trigger Codex. Each invocation must set `model=gpt-5-codex`, `sandbox=false`, `fullAuto=true`, `yolo=false`, `search=true`, and `approvalPolicy="untrusted"`.
-- **Context Delivery via Paths**: Codex can read files and directories autonomously. Provide `@relative/path` attachments (files or entire directories) in prompts; only inline transient context that cannot live on disk.
+- **Context Delivery via Paths**: Codex can read files and directories autonomously. Provide `@relative/path` attachments (files or entire directories) in prompts; only inline transient context that cannot live on disk. When specs already live under `.claude/specs/{feature_name}/`, attach the directory itself (e.g., `@.claude/specs/todo-list-app/`) so Codex can traverse it instead of you re-reading or pasting every file.
 - **Standard Change Packet (Both Directions)**: Every implementation run—backend or frontend—must emit:
   - `change_summary.git_status` (raw `git status --short`)
   - `change_summary.git_diff_stat` (raw `git diff --stat`)
@@ -186,6 +186,7 @@ All frontend/glue coding must be delegated to the `requirements-code` sub-agent.
   - `./.claude/specs/{feature_name}/requirements-spec.md`
 2. **Build Prompt**
   - Include sections for Summary, Locked Tech Stack (if specified), Existing Code References, Files to Modify/Create, Acceptance Criteria, Edge Cases.
+  - When sections draw from documents already stored under `.claude/specs/{feature_name}/`, reference them via `@.claude/specs/{feature_name}/` (or the specific file) instead of pasting raw content; summarize only the constraints Codex must obey.
   - Explicitly state: "Codex must implement every backend/API/database change. The requirements-code sub-agent will handle all frontend/glue tasks after reading the specs + codex artifacts."
   - Add a `## CODE CONTEXT (ATTACH VIA @path)` section listing every repo file or directory Codex should open (e.g., `@internal/api`, `@cmd/server/main.go`). Codex now reads files autonomously, so only inline content that is not already stored on disk.
   - Add **OUTPUT REQUIREMENTS (MANDATORY)**:
@@ -205,6 +206,7 @@ All frontend/glue coding must be delegated to the `requirements-code` sub-agent.
 4. **Verify Codex Artifacts**
   - Confirm Codex recorded its prompt, responses, and QA notes in `./.claude/specs/{feature_name}/codex-backend.md`; if anything is missing or stale, rerun Codex to fix it rather than authoring the file yourself.
   - Confirm Codex populated `./.claude/specs/{feature_name}/codex-output.json` with the structured summary.
+  - If either codex-backend.md or codex-output.json is missing/empty after a run, treat it as a failed iteration: rerun Codex with the same prompt plus an explicit reminder to emit the artifacts. Manual backfilling is only allowed when Codex is unreachable and the outage is logged in the manifest.
   - If APIs changed, confirm `./.claude/specs/{feature_name}/api-docs.md` exists with the required details.
   - Apply Codex's changes to the repository (files, migrations, tests).
 5. **Validate & Gate**

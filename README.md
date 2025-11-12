@@ -188,6 +188,12 @@ Each Codex call generates two files, and **Codex must write them during the same
    - Change summary
    - Self-review checklist
 
+If either artifact is missing or empty after a run, rerun Codex with the same prompt plus an explicit reminder to emit the files—manual backfilling is reserved only for outages that are documented in the manifest.
+
+### Context Attachment Best Practice
+
+- When specs already live inside `.claude/specs/{feature_name}/`, attach the directory itself in the Codex prompt (e.g., `@.claude/specs/todo-list-app/`). Codex can crawl the folder and read whichever documents it needs, which eliminates redundant `Read` calls or giant pasted blobs.
+
 ---
 
 ## 🚀 Quick Start

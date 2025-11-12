@@ -223,6 +223,7 @@ For each category:
 - Identify which file(s) supply the information (create/refresh them if missing).
 - Read them fully so you can summarize constraints accurately.
 - Decide which repository files Codex must inspect directly; list them in Step 2 using `@relative/path` (file or directory). Codex will open those paths autonomously, so you only need to inline content when data is generated on-the-fly or cannot be stored on disk.
+- **Directory Shortcut**: When an entire artifact bundle already exists under `.claude/specs/{feature_name}/`, attach the directory itself in Step 2 (e.g., `@.claude/specs/todo-list-app/`). Codex can traverse the folder and load whichever files it needs, which means you avoid re-reading or pasting long documents purely for context hand-off. You still must understand the material, but you no longer have to duplicate it inside the prompt.
 
 If a category truly does not exist for this task, call it out explicitly in the prompt and explain why (e.g., “No sprint plan yet—single ad-hoc fix”). Do **not** continue until every category is either read or formally declared absent.
 
@@ -238,24 +239,24 @@ If a category truly does not exist for this task, call it out explicitly in the 
 # BACKEND [IMPLEMENTATION|BUG_FIX|CODE_REVIEW]
 
 ## TECHNOLOGY CONSTRAINTS (MUST FOLLOW - NON-NEGOTIABLE)
-[paste the full content from the file(s) that lock the tech stack/constraints]
+[summarize the non-negotiable constraints and reference the source file(s) via `@path`, e.g., `@.claude/specs/{feature}/00-constraints.yaml`]
 
 **ENFORCEMENT**: Use ONLY the specified tech stack. Any deviation = FAILURE.
 
 ## PRODUCT REQUIREMENTS
-[paste the confirmed requirements/PRD content]
+[summarize confirmed requirements and cite the authoritative doc via `@.claude/specs/{feature}/01-requirements-brief.md` or equivalent]
 
 ## SYSTEM ARCHITECTURE
-[If `./.claude/specs/{feature}/02-architecture.md` exists, paste its content here. For minimal profile, paste the Architecture section from `01-requirements-brief.md`. Include components, boundaries, data model, and key interaction flows.]
+[Reference `@.claude/specs/{feature}/02-architecture.md` (or the architecture section embedded in the brief) and capture only the key highlights needed for Codex; avoid pasting the entire document.]
 
 ## SPRINT PLAN - BACKEND TASKS ONLY
-[paste the task list describing what Codex must implement right now]
+[summarize the current sprint/task list and note the file that contains the full breakdown]
 
 ## REPOSITORY CONTEXT
-[paste the latest repository scan / context summary]
+[summarize the latest repository scan and attach the directory/file containing the full context]
 
 ## FRONTEND API CONTRACT (CRITICAL - EXACT MATCH REQUIRED)
-[paste the contract or documentation that defines request/response formats]
+[summarize the API contract highlights and point Codex to the source doc (e.g., `@.claude/specs/{feature}/api-docs.md`)]
 
 ## CODE CONTEXT (ATTACH VIA @path)
 - List every repository file or directory Codex must open with `@relative/path`, e.g.
@@ -418,6 +419,12 @@ Use the `mcp__codex-mcp__ask-codex` tool with parameters above.
 □ Check questions[] in CODEX_OUTPUT_PATH → any blockers?
 □ Forward Codex's change packet (git status/diff/per-file notes) and API docs to downstream agents before any frontend/glue work starts
 ```
+
+**Missing Artifact Protocol**:
+If any required Codex-owned artifact (implementation log, output JSON, API docs) is missing or obviously stale after a run:
+1. Stop immediately — do **not** author or backfill the file yourself.
+2. Re-run `mcp__codex-mcp__ask-codex` with the same context plus an explicit reminder that the artifact must be written.
+3. Repeat the verification checklist. Only escalate to manual fixes if Codex is unavailable and you've recorded the outage in the manifest.
 
 **IF ANY CHECK FAILS**:
 - Document which check failed
