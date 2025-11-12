@@ -100,7 +100,7 @@ Save scan results to: ./.claude/specs/{feature_name}/00-repo-scan.md"
   - Codex MCP owns backend/API/database implementation, backend bug fixes, backend-focused tests, backend reviews (security/perf/perf), and backend architecture recommendations.
   - Claude Code owns frontend/UI/state/glue work, frontend bug fixes, frontend tests, workflow orchestration, and specification stewardship.
 - **Immediate Backend Delegation**: The moment you detect backend coding/review/bugfix work, stop manual edits and trigger Codex. Each invocation must set `model=gpt-5-codex`, `sandbox=false`, `fullAuto=true`, `yolo=false`, `search=true`, and `approvalPolicy="untrusted"`.
-- **Context Delivery via Paths**: Codex can read files and directories autonomously. Provide `@relative/path` attachments (files or entire directories) in prompts; only inline transient context that cannot live on disk. When specs already live under `.claude/specs/{feature_name}/`, attach the directory itself (e.g., `@.claude/specs/todo-list-app/`) so Codex can traverse it instead of you re-reading or pasting every file.
+- **Context Delivery via Paths**: Codex can read files and directories autonomously. Provide `@relative/path` attachments (files or entire directories) in prompts; only inline transient context that cannot live on disk. When specs already live under `.claude/specs/{feature_name}/`, attach the directory itself (e.g., `@.claude/specs/todo-list-app/`) so Codex can traverse it instead of you re-reading or pasting every file. The current-state/requirements/architecture docs are assumed complete before Codex is launched, so never rewrite or summarize them inline—state the new task briefly and point Codex to the directory via `@`.
 - **Standard Change Packet (Both Directions)**: Every implementation run—backend or frontend—must emit:
   - `change_summary.git_status` (raw `git status --short`)
   - `change_summary.git_diff_stat` (raw `git diff --stat`)
@@ -183,14 +183,15 @@ All frontend/glue coding must be delegated to the `requirements-code` sub-agent.
 ### Phase 2A: Codex Backend Implementation (MANDATORY BEFORE AGENTS)
 1. **Gather Context**
   - `./.claude/specs/{feature_name}/00-repo-scan.md` (if it exists)
- - `./.claude/specs/{feature_name}/requirements-confirm.md`
+  - `./.claude/specs/{feature_name}/requirements-confirm.md`
   - `./.claude/specs/{feature_name}/requirements-spec.md`
+  - These artifacts already capture the existing state, requirements, and architecture; when you call Codex, rely on `@.claude/specs/{feature_name}/` instead of recreating that context in prose.
 2. **Build Prompt**
-  - Keep it compact: describe the task deltas, then add a line such as `Full workflow artifacts: @.claude/specs/{feature_name}/` so Codex reads the already-generated docs itself instead of duplicating them in the prompt.
+  - Keep it compact: describe the task deltas in one short paragraph, then add a line such as `Full workflow artifacts: @.claude/specs/{feature_name}/` so Codex reads the already-generated docs itself instead of duplicating them in the prompt. Do **not** restate the architecture/requirements/history—instructions should stay high-level and defer all details to the attached directory.
   - Include sections for Summary, Locked Tech Stack (if specified), Existing Code References, Files to Modify/Create, Acceptance Criteria, Edge Cases.
   - When a section needs details that already live under `.claude/specs/{feature_name}/`, reference the directory or file via `@.claude/specs/{feature_name}/...` rather than pasting raw content; only inline constraints that do not exist on disk.
   - Explicitly state: "Codex must implement every backend/API/database change. The requirements-code sub-agent will handle all frontend/glue tasks after reading the specs + codex artifacts."
-  - Add a `## CODE CONTEXT (ATTACH VIA @path)` section listing every repo file or directory Codex should open (e.g., `@internal/api`, `@cmd/server/main.go`). Codex now reads files autonomously, so only inline content that is not already stored on disk.
+  - Add a `## CODE CONTEXT (ATTACH VIA @path)` section listing every repo file or directory Codex should open (e.g., `@internal/api`, `@cmd/server/main.go`). Codex now reads files autonomously, so only inline content that is not already stored on disk—no extra narrative context dumps.
   - Add **OUTPUT REQUIREMENTS (MANDATORY)**:
     - Implement backend code + tests directly in the repository, following project structure.
     - Have Codex itself write `IMPLEMENTATION_LOG_PATH = ./.claude/specs/{feature_name}/codex-backend.md` during the same run (do NOT defer to downstream agents). The log must include:
