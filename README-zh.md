@@ -1,8 +1,8 @@
-# Claude Code 需求驱动与错误修复工作流
+# Spec-to-Code: 需求驱动开发与错误修复工作流
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Claude Code](https://img.shields.io/badge/Claude-Code-blue)](https://claude.ai/code)
-[![Version](https://img.shields.io/badge/Version-1.0-green)](https://github.com/)
+[![Version](https://img.shields.io/badge/Version-1.0-green)](https://github.com/yourusername/spec-to-code)
 
 > 轻量级需求驱动开发与系统化错误修复工作流
 
@@ -192,8 +192,8 @@ graph LR
 
 ```bash
 # 克隆仓库
-git clone https://github.com/your-repo/requirements-pilot-only.git
-cd requirements-pilot-only
+git clone https://github.com/yourusername/spec-to-code.git
+cd spec-to-code
 
 # 使用 make 安装
 make install

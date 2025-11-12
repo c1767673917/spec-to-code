@@ -1,8 +1,8 @@
-# Claude Code Requirements-Driven & Bugfix Workflows
+# Spec-to-Code: Requirements-Driven Development & Bugfix Workflows
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Claude Code](https://img.shields.io/badge/Claude-Code-blue)](https://claude.ai/code)
-[![Version](https://img.shields.io/badge/Version-1.0-green)](https://github.com/)
+[![Version](https://img.shields.io/badge/Version-1.0-green)](https://github.com/yourusername/spec-to-code)
 
 > Lightweight requirements-driven development and systematic bug fixing workflows
 
@@ -192,8 +192,8 @@ If the log or the structured block is missing/empty after a run, rerun Codex wit
 
 ```bash
 # Clone repository
-git clone https://github.com/your-repo/requirements-pilot-only.git
-cd requirements-pilot-only
+git clone https://github.com/yourusername/spec-to-code.git
+cd spec-to-code
 
 # Install using make
 make install
