@@ -33,7 +33,7 @@ Each agent has ONE clear job. Never overstep boundaries.
 - **Issue Reporting Standard**: Every finding exchanged during reviews must state `priority (High/Medium/Low)`, `problem type`, `context/lines`, `repro or observation`, and a concrete `fix recommendation`.
 - **Iteration Cap**: Each feedback loop (backend↔frontend) allows at most **3 iterations**. Track the counter; if unresolved after 3 exchanges, pause and escalate to the user.
 - **Autonomous File Access**: Codex MCP can open repository files/dirs itself (via `@relative/path` or autonomous exploration). Provide paths instead of pasting huge docs; only inline truly dynamic context.
-- **Default Codex Prompt Strategy**: Keep prompts compact—describe the task, then attach the entire artifact directory (e.g., `@.claude/specs/{feature}/`) or specific files so Codex can read them directly. Pick the Codex MCP tool that best fits the job: default to `mcp__codex-mcp__codex` with `model=gpt-5-codex`, `sandbox=false`, `fullAuto=true`, `yolo=false`, `search=true`, `approvalPolicy="untrusted"`. Use `mcp__codex-mcp__ask-codex` only for quick single-response runs and `mcp__codex-mcp__batch-codex` for parallelizable refactors. Never paste line-by-line spec text when it already lives on disk—point Codex at the directory instead.
+- **Default Codex Prompt Strategy**: Keep prompts compact—describe the task, then attach the entire artifact directory (e.g., `@.claude/specs/{feature}/`) or specific files so Codex can read them directly. Pick the Codex MCP tool that best fits the job: default to `mcp__codex-mcp__codex` with `model=gpt-5.1-codex`, `sandbox=false`, `fullAuto=true`, `yolo=false`, `search=true`, `approvalPolicy="untrusted"`. Use `mcp__codex-mcp__ask-codex` only for quick single-response runs and `mcp__codex-mcp__batch-codex` for parallelizable refactors. Never paste line-by-line spec text when it already lives on disk—point Codex at the directory instead.
 
 ---
 
@@ -365,7 +365,7 @@ Do not invent alternative filenames when running Requirements-Pilot.
 
 **NOW you must delegate to Codex using the most appropriate MCP tool**:
 
-- **Primary path (`mcp__codex-mcp__codex`)** – interactive, multi-step backend work. Use `model="gpt-5-codex"`, `sandbox=false`, `fullAuto=true`, `yolo=false`, `search=true`, `approvalPolicy="untrusted"`, and pass the complete prompt from Step 2.
+- **Primary path (`mcp__codex-mcp__codex`)** – interactive, multi-step backend work. Use `model="gpt-5.1-codex"`, `sandbox=false`, `fullAuto=true`, `yolo=false`, `search=true`, `approvalPolicy="untrusted"`, and pass the complete prompt from Step 2.
 - **Single-response path (`mcp__codex-mcp__ask-codex`)** – reserve for tiny clarifications or diagnostics when a full interactive run is unnecessary.
 - **Parallel path (`mcp__codex-mcp__batch-codex`)** – only when you already decomposed the backend work into multiple atomic tasks that can run concurrently.
 

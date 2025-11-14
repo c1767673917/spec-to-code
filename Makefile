@@ -27,6 +27,9 @@ SPECS_DIR = .claude/specs
 
 # Install all configurations
 install: deploy
+	@echo "📄 Syncing CLAUDE.md..."
+	@mkdir -p $(CLAUDE_CONFIG_DIR)
+	@cp ./CLAUDE.md $(CLAUDE_CONFIG_DIR)/CLAUDE.md
 	@echo "✅ Installation complete!"
 
 # Deploy Requirements workflow
