@@ -13,7 +13,7 @@ Each agent has ONE clear job. Never overstep boundaries.
 - ❌ **DON'T**: Recommend tech in empty repos, suggest architecture, create roadmaps
 - **Empty Repo Rule**: If no code exists, output < 50 lines stating "Empty - wait for constraints"
 
-### Codex MCP
+### Codex Skill
 **Job**: Generate backend code
 - ✅ **DO**: Implement backend per specs, write tests, document APIs
 - ❌ **DON'T**: Make architecture decisions, choose tech stack
@@ -23,17 +23,15 @@ Each agent has ONE clear job. Never overstep boundaries.
 
 ---
 
-## Claude ↔ Codex Collaboration Blueprint
-
-- **Backend Ownership (Codex MCP)**: All API/service/database/middleware work, backend reviews (security, performance, quality), backend bug fixes, automated backend tests, and architecture recommendations always run through Codex.
+- **Backend Ownership (Codex Skill)**: All API/service/database/middleware work, backend reviews (security, performance, quality), backend bug fixes, automated backend tests, and architecture recommendations always run through Codex.
 - **Frontend & Glue Ownership (Claude Code)**: All UI/state/routing work, orchestration scripts, frontend-focused tests, documentation for client usage, and workflow coordination stay with you; never delegate those to Codex.
 - **Mutual Review Loop**:
   - After Codex ships backend changes it must deliver a change packet containing `git status --short`, `git diff --stat`, and per-file summaries (path, status, reasoning). You review API contracts, integration readiness, and compatibility before continuing.
   - After you finish frontend/glue changes, generate the same change packet format plus API usage notes and send it to Codex for backend-side review (contract validation, data shape alignment, integration risks).
 - **Issue Reporting Standard**: Every finding exchanged during reviews must state `priority (High/Medium/Low)`, `problem type`, `context/lines`, `repro or observation`, and a concrete `fix recommendation`.
 - **Iteration Cap**: Each feedback loop (backend↔frontend) allows at most **3 iterations**. Track the counter; if unresolved after 3 exchanges, pause and escalate to the user.
-- **Autonomous File Access**: Codex MCP can open repository files/dirs itself (via `@relative/path` or autonomous exploration). Provide paths instead of pasting huge docs; only inline truly dynamic context.
-- **Default Codex Prompt Strategy**: Keep prompts compact—describe the task, then attach the entire artifact directory (e.g., `@.claude/specs/{feature}/`) or specific files so Codex can read them directly. Pick the Codex MCP tool that best fits the job: default to `mcp__codex-mcp__codex` with `model=gpt-5.1-codex`, `sandbox=false`, `fullAuto=true`, `yolo=false`, `search=true`, `approvalPolicy="untrusted"`. Use `mcp__codex-mcp__ask-codex` only for quick single-response runs and `mcp__codex-mcp__batch-codex` for parallelizable refactors. Never paste line-by-line spec text when it already lives on disk—point Codex at the directory instead.
+- **Autonomous File Access**: Codex Skill can open repository files/dirs itself (via `@relative/path` or autonomous exploration). Provide paths instead of pasting huge docs; only inline truly dynamic context.
+- **Default Codex Prompt Strategy**: Keep prompts compact—describe the task, then attach the entire artifact directory (e.g., `@.claude/specs/{feature}/`) or specific files so Codex can read them directly. Invoke Codex via the Bash tool running `uv run ~/.claude/skills/codex/scripts/codex.py "<task>" [model] [workdir]` with `timeout: 7200000`; default model `gpt-5.1-codex`, alternative `gpt-5.1`. Never paste line-by-line spec text when it already lives on disk—point Codex at the directory instead.
 
 ---
 
@@ -103,15 +101,15 @@ Each agent has ONE clear job. Never overstep boundaries.
 
 ---
 
-# Codex MCP - Backend Code Generation Tool
+# Codex Skill - Backend Code Generation Tool
 
 ## Role Definition
 
-**Codex MCP = Autonomous Backend Partner**
+**Codex Skill = Autonomous Backend Partner**
 - Can independently read local files/dirs that you reference with `@path` (and may explore nearby code when needed)
 - Implements backend code, tests, security/perf reviews, and bug fixes end-to-end
 - Supports advanced reasoning, planning, documentation, and optional web search
-- Executes tooling commands under the MCP bridge using the provided approval policy
+- Executes via Bash tool calling `uv run ~/.claude/skills/codex/scripts/codex.py`
 
 **You (Claude Code) = Workflow Lead**
 - Decide when to involve Codex (any backend-touching task)
@@ -201,7 +199,7 @@ Q3: Am I reviewing backend code?
 If at ANY point you realize you're violating this rule, immediately output:
 ```
 ⚠️ VIOLATION DETECTED: I was about to [action] without calling Codex.
-CORRECTIVE ACTION: Stopping immediately and calling Codex via mcp__codex-mcp__codex (or whichever Codex MCP tool best fits this backend task).
+CORRECTIVE ACTION: Stopping immediately and calling Codex via the codex skill (`uv run ~/.claude/skills/codex/scripts/codex.py ...`).
 ```
 
 ---
@@ -361,15 +359,16 @@ Downstream review artifacts are produced by sub-agents and must use:
 
 Do not invent alternative filenames when running Requirements-Pilot.
 
-### Step 3: EXECUTE Codex MCP Tool Call
+### Step 3: EXECUTE Codex Skill Call
 
-**NOW you must delegate to Codex using the most appropriate MCP tool**:
+**NOW you must delegate to Codex via the skill Bash call**:
 
-- **Primary path (`mcp__codex-mcp__codex`)** – interactive, multi-step backend work. Use `model="gpt-5.1-codex"`, `sandbox=false`, `fullAuto=true`, `yolo=false`, `search=true`, `approvalPolicy="untrusted"`, and pass the complete prompt from Step 2.
-- **Single-response path (`mcp__codex-mcp__ask-codex`)** – reserve for tiny clarifications or diagnostics when a full interactive run is unnecessary.
-- **Parallel path (`mcp__codex-mcp__batch-codex`)** – only when you already decomposed the backend work into multiple atomic tasks that can run concurrently.
+- Command: `uv run ~/.claude/skills/codex/scripts/codex.py "<prompt from Step 2>" [model] [workdir]`
+- Default model: `gpt-5.1-codex` (use `gpt-5.1` for faster general reasoning)
+- Bash tool params: set `timeout: 7200000`
+- Resume flow: `uv run ~/.claude/skills/codex/scripts/codex.py resume <SESSION_ID> "<prompt>" [model] [workdir]`
 
-Whichever tool you choose, keep the prompt concise and attach the authoritative docs via `@.claude/specs/{feature}/` (or the exact file paths) instead of pasting their contents.
+Keep the prompt concise and attach the authoritative docs via `@.claude/specs/{feature}/` (or the exact file paths) instead of pasting their contents.
 
 **EXECUTION CHECKPOINT**:
 - Have you prepared the complete prompt? → If NO, go back to Step 2
@@ -377,7 +376,7 @@ Whichever tool you choose, keep the prompt concise and attach the authoritative 
 - Are you ready to call the tool NOW? → If YES, execute below
 
 **DO IT NOW**:
-Use the selected Codex MCP tool with the parameters above.
+Run the codex skill command above with the prepared prompt.
 
 **DO NOT PROCEED** to Step 4 until the tool returns a response.
 
@@ -414,7 +413,7 @@ Use the selected Codex MCP tool with the parameters above.
 **Missing Artifact Protocol**:
 If any required Codex-owned artifact (implementation log with Structured Summary, API docs) is missing or obviously stale after a run:
 1. Stop immediately — do **not** author or backfill the file yourself.
-2. Re-run the same Codex MCP tool (default `mcp__codex-mcp__codex`) with the identical context plus an explicit reminder that the artifact must be written.
+2. Re-run the same codex skill command with the identical context plus an explicit reminder that the artifact must be written.
 3. Repeat the verification checklist. Only escalate to manual fixes if Codex is unavailable and you've recorded the outage in the manifest.
 
 **IF ANY CHECK FAILS**:
@@ -506,7 +505,7 @@ Add to IMPLEMENTATION_LOG_PATH:
 - **Changes Made**: [file paths and descriptions]
 ```
 
-**Execute**: Re-run the Codex MCP tool you selected earlier (default `mcp__codex-mcp__codex`) with the revision prompt
+**Execute**: Re-run the codex skill command with the revision prompt (`uv run ~/.claude/skills/codex/scripts/codex.py "<prompt>" [model] [workdir]`)
 
 **After Response**: Go back to Step 4 (Verify Output)
 
@@ -525,7 +524,7 @@ Add to IMPLEMENTATION_LOG_PATH:
    - Reference all relevant frontend files via `@path`.
    - Include the change packet plus any open questions or risks.
    - Use the `# BACKEND CODE_REVIEW` prompt pattern so Codex knows it should review (not implement).
-3. **Run the Codex MCP tool best suited for review** (default `mcp__codex-mcp__codex`; `ask-codex` only if you need a single-response critique) with the standard parameters (`approvalPolicy="untrusted"`, `search=true`) and wait for Codex’s feedback focusing on:
+3. **Run the codex skill for review** using the standard command (`uv run ~/.claude/skills/codex/scripts/codex.py "<prompt>" [model] [workdir]`, `timeout: 7200000`) and wait for Codex’s feedback focusing on:
    - API usage correctness
    - Data format alignment
    - Backend integration risks or missing endpoints

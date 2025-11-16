@@ -15,7 +15,7 @@ This project provides two core workflows focused on practicality and efficiency:
 1. **Requirements-Pilot** - Requirements-driven development workflow
 2. **Bugfix** - Systematic bug resolution workflow
 
-Both workflows integrate **Codex MCP** to ensure all backend code generation is unified, high-quality, and traceable.
+Both workflows integrate **Codex Skill** to ensure all backend code generation is unified, high-quality, and traceable.
 
 ---
 
@@ -45,7 +45,7 @@ graph LR
 ### Key Features
 
 - **🎯 Requirements-First**: Automatically generates detailed technical specifications
-- **🧠 Codex Backend**: All backend/API/database development enforced through Codex MCP
+- **🧠 Codex Backend**: All backend/API/database development enforced through Codex Skill
 - **🤖 Frontend Sub-Agent**: Dedicated requirements-code agent reads all artifacts before writing frontend/glue code
 - **✅ Quality Gates**: 90% quality threshold with automatic optimization
 - **📁 Persistent Artifacts**: All documents saved to `.claude/specs/`
@@ -114,7 +114,7 @@ graph LR
 ### Key Features
 
 - **🔍 Root Cause Analysis**: Systematic problem analysis
-- **🧠 Codex Backend Fixes**: Backend bugs enforced through Codex MCP
+- **🧠 Codex Backend Fixes**: Backend bugs enforced through Codex Skill
 - **🧪 Fix Verification**: Independent verification of fix quality
 - **📊 Regression Prevention**: Ensures no new issues introduced
 - **📝 Complete Documentation**: Records problems and solutions
@@ -151,9 +151,9 @@ graph LR
 
 ---
 
-## 🧠 Codex MCP Integration
+## 🧠 Codex Skill Integration
 
-Both workflows enforce Codex MCP for all backend code generation.
+Both workflows enforce Codex Skill for all backend code generation.
 
 ### Automatic Codex Call Scenarios
 

@@ -1,7 +1,7 @@
 # Claude Code Requirements-Driven Workflow System Makefile
 # Quick deployment for Requirements workflow
 
-.PHONY: help install deploy deploy-commands deploy-agents clean test version all
+.PHONY: help install deploy deploy-commands deploy-agents deploy-skill clean test version all
 
 # Default target
 help:
@@ -14,6 +14,7 @@ help:
 	@echo "  deploy          - Deploy Requirements workflow (commands + agents)"
 	@echo "  deploy-commands - Deploy all slash commands"
 	@echo "  deploy-agents   - Deploy all agent configurations"
+	@echo "  deploy-skill    - Deploy Codex skill (skills/codex → ~/.claude/skills/)"
 	@echo "  test            - Test Requirements workflow with sample"
 	@echo "  clean           - Clean generated artifacts"
 	@echo "  version         - Show version information"
@@ -23,6 +24,7 @@ help:
 CLAUDE_CONFIG_DIR = ~/.claude
 COMMANDS_DIR = commands
 AGENTS_DIR = agents
+SKILLS_DIR = skills/codex
 SPECS_DIR = .claude/specs
 
 # Install all configurations
@@ -30,6 +32,7 @@ install: deploy
 	@echo "📄 Syncing CLAUDE.md..."
 	@mkdir -p $(CLAUDE_CONFIG_DIR)
 	@cp ./CLAUDE.md $(CLAUDE_CONFIG_DIR)/CLAUDE.md
+	@$(MAKE) deploy-skill
 	@echo "✅ Installation complete!"
 
 # Deploy Requirements workflow
@@ -71,6 +74,14 @@ deploy-agents:
 	@echo "   - requirements-review"
 	@echo "   - bugfix"
 	@echo "   - bugfix-verify"
+
+# Deploy Codex skill
+deploy-skill:
+	@echo "🛠️ Deploying Codex skill..."
+	@mkdir -p $(CLAUDE_CONFIG_DIR)/skills
+	@rm -rf $(CLAUDE_CONFIG_DIR)/skills/codex
+	@cp -r $(SKILLS_DIR) $(CLAUDE_CONFIG_DIR)/skills/
+	@echo "✅ Codex skill deployed to ~/.claude/skills/codex"
 
 # Test Requirements workflow
 test:

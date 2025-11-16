@@ -97,9 +97,9 @@ Save scan results to: ./.claude/specs/{feature_name}/00-repo-scan.md"
 
 ## Codex / Claude Collaboration Rules
 - **Strict Ownership Boundaries**:
-  - Codex MCP owns backend/API/database implementation, backend bug fixes, backend-focused tests, backend reviews (security/perf/perf), and backend architecture recommendations.
+  - Codex Skill owns backend/API/database implementation, backend bug fixes, backend-focused tests, backend reviews (security/perf/perf), and backend architecture recommendations.
   - Claude Code owns frontend/UI/state/glue work, frontend bug fixes, frontend tests, workflow orchestration, and specification stewardship.
-- **Immediate Backend Delegation**: The moment you detect backend coding/review/bugfix work, stop manual edits and trigger Codex. Each invocation must set `model=gpt-5.1-codex`, `sandbox=false`, `fullAuto=true`, `yolo=false`, `search=true`, and `approvalPolicy="untrusted"`.
+- **Immediate Backend Delegation**: The moment you detect backend coding/review/bugfix work, stop manual edits and trigger Codex via the skill Bash call: `uv run ~/.claude/skills/codex/scripts/codex.py "<prompt>" "gpt-5.1-codex" [workdir]` with `timeout: 7200000`. Use `gpt-5.1` for lighter reasoning-only runs.
 - **Context Delivery via Paths**: Codex can read files and directories autonomously. Provide `@relative/path` attachments (files or entire directories) in prompts; only inline transient context that cannot live on disk. When specs already live under `.claude/specs/{feature_name}/`, attach the directory itself (e.g., `@.claude/specs/todo-list-app/`) so Codex can traverse it instead of you re-reading or pasting every file. The current-state/requirements/architecture docs are assumed complete before Codex is launched, so never rewrite or summarize them inline—state the new task briefly and point Codex to the directory via `@`.
 - **Standard Change Packet (Both Directions)**: Every implementation run—backend or frontend—must emit:
   - `change_summary.git_status` (raw `git status --short`)
@@ -109,7 +109,7 @@ Save scan results to: ./.claude/specs/{feature_name}/00-repo-scan.md"
   1. **Backend → Claude Review**: Codex returns its change packet + implementation log/questions. Claude reviews API/data contracts and integration readiness, logs issues with `priority/type/path:line/context/impact/recommendation`, and, if needed, triggers Codex revisions. Maximum 3 backend iterations before escalation.
   2. **Frontend → Codex Review**: After requirements-code finishes UI/glue work, compile the same change packet plus API usage notes, then run a Codex `CODE_REVIEW` call so it validates request/response formats and backend alignment. Address Codex’s findings within 3 iterations or escalate.
 - **Issue Reporting Discipline**: Any feedback between agents must include `priority (High/Medium/Low)`, `problem type`, `context or repro steps`, and `fix recommendation`. Track iteration counters; never exceed 3 loops without user input.
-- **Search Always On**: Keep `search=true` in every Codex call so it can tap into network resources when needed.
+- **Search Always On**: Allow Codex to use search when needed inside its run.
 
 ### Phase 0: Repository Context (Automatic - Unless --skip-scan)
 Scan and analyze the existing codebase to understand project context.
@@ -202,8 +202,8 @@ All frontend/glue coding must be delegated to the `requirements-code` sub-agent.
     - If API endpoints are created/modified, also produce `./.claude/specs/{feature_name}/api-docs.md` including: endpoints list, request params (name/type/required/validation), success/failed responses, auth method, error codes.
     - Commit message convention: `<type>(<scope>): <subject>` (e.g., `feat(auth): implement login API`); record these in logs (no push required).
 3. **Run Codex**
-  - Select the Codex MCP tool that best fits the backend work. Default to `mcp__codex-mcp__codex` with `model=gpt-5.1-codex`, `sandbox=false`, `fullAuto=true`, `yolo=false`, `search=true`, `approvalPolicy="untrusted"`. Use `mcp__codex-mcp__ask-codex` only for single-response runs and `mcp__codex-mcp__batch-codex` for pre-chunked parallel jobs. Keep the prompt simple and rely on `@.claude/specs/{feature_name}/` so Codex reads the docs directly.
-  - Answer follow-up questions until Codex produces complete backend code + tests and required artifacts.
+  - Execute via Bash tool: `uv run ~/.claude/skills/codex/scripts/codex.py "<prompt>" "gpt-5.1-codex" [workdir]` with `timeout: 7200000`. For quick one-shot analyses, shorten the prompt but reuse the same command; for resume, use `resume <SESSION_ID> "<prompt>"`.
+  - Keep the prompt simple and rely on `@.claude/specs/{feature_name}/` so Codex reads the docs directly. Answer follow-up questions until Codex produces complete backend code + tests and required artifacts.
 4. **Verify Codex Artifacts**
   - Confirm Codex recorded its prompt, responses, QA notes, and the `Structured Summary` JSON block in `./.claude/specs/{feature_name}/codex-backend.md`; if anything is missing or stale, rerun Codex to fix it rather than authoring the file yourself.
   - If codex-backend.md is missing/empty, or its structured block is absent, treat the run as failed: rerun Codex with the same prompt plus an explicit reminder to emit the artifact. Manual backfilling is only allowed when Codex is unreachable and the outage is logged in the manifest.
@@ -223,7 +223,7 @@ After Codex finishes backend work, run the following chain:
 
 ```
 1) requirements-code agent → Reads requirements-spec + codex-backend.md (with structured data) and architecture/api-docs if present **before** touching the repository, then wires frontend/config/glue code and documents integration status.
-2) Codex MCP frontend review → Run the Codex review path (default `mcp__codex-mcp__codex` with a `# BACKEND CODE_REVIEW` prompt; fall back to `mcp__codex-mcp__ask-codex` only for one-shot critiques) using the frontend change packet (git status/diff stat/per-file notes + API usage summary). Codex validates API usage/data formats and raises issues (priority/type/context/impact/fix). Address feedback within ≤3 iterations.
+2) Codex Skill frontend review → Run the Codex review call via Bash tool `uv run ~/.claude/skills/codex/scripts/codex.py "<# BACKEND CODE_REVIEW prompt + change packet>" "gpt-5.1-codex" [workdir]` (`timeout: 7200000`). Codex validates API usage/data formats and raises issues (priority/type/context/impact/fix). Address feedback within ≤3 iterations.
 3) requirements-review agent → Produces `./.claude/specs/{feature_name}/codex-review.md` with 0–100 score and a structured issue list (ID, severity, type, path:lines, description, impact, fix plan); returns the numeric score for gating.
 4) If review score < 90% → Loop back to requirements-code for fixes referencing review feedback (and re-run Codex review if frontend changes again).
 5) If score ≥ 90% → Enter Testing Decision Gate.
