@@ -44,9 +44,10 @@ graph LR
 
 ### Key Features
 
-- **🎯 Requirements-First**: Agents generate requirements and architecture docs (English) with ≥90 score
+- **🎯 Requirements-First**: Agents coordinate sub-agents for the *first draft* only, then refine requirements/architecture docs manually with rubric scoring and explicit user approval at every phase (≥90 to advance)
 - **🧠 Codex Everywhere**: All code, review, and testing executed by Codex Skill
-- **🔍 Spec Review by Codex**: Specs sent to Codex for feedback before implementation
+- **🏗️ Architecture Hand-off**: Agent designs an ultra-light skeleton, gets user buy-in, then hands it (plus specs) to Codex to expand into the full architecture doc before manual review/score
+- **🔍 Spec Review by Codex**: Expanded architecture doc + requirements are validated by Codex before implementation
 - **✅ Quality Gates**: 90% quality threshold with automatic optimization
 - **📁 Persistent Artifacts**: All documents saved to `.claude/specs/`
 - **🔄 Iterative Refinement**: Automatic improvement until quality met
@@ -56,7 +57,7 @@ graph LR
 
 | Agent | Responsibility | Output |
 |-------|----------------|--------|
-| **requirements-generate** | Author requirements (`01-requirements.md`) and architecture (`02-architecture.md`) docs; iterate to ≥90; get Codex spec feedback | Docs in `.claude/specs/{feature}/` |
+| **requirements-generate** | Orchestrate sub-agent first drafts, run clarification + scoring loops, design the architecture skeleton, hand off to Codex for full expansion, manually refine to ≥90 and gate user approval | Docs in `.claude/specs/{feature}/` |
 | **requirements-code** | Orchestrate Codex implementation (all code + tests) | Codex writes `codex-backend.md`, `api-docs.md` |
 | **requirements-review** | Orchestrate Codex code review | Codex writes `codex-review.md` |
 | **requirements-testing** | Orchestrate Codex test runs | Results recorded in `codex-backend.md` |
