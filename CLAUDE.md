@@ -31,7 +31,7 @@ Each agent has ONE clear job. Never overstep boundaries.
 - **Issue Reporting Standard**: Every finding exchanged during reviews must state `priority (High/Medium/Low)`, `problem type`, `context/lines`, `repro or observation`, and a concrete `fix recommendation`.
 - **Iteration Cap**: Each feedback loop (backend↔frontend) allows at most **3 iterations**. Track the counter; if unresolved after 3 exchanges, pause and escalate to the user.
 - **Autonomous File Access**: Codex Skill can open repository files/dirs itself (via `@relative/path` or autonomous exploration). Provide paths instead of pasting huge docs; only inline truly dynamic context.
-- **Default Codex Prompt Strategy**: Keep prompts compact—describe the task, then attach the entire artifact directory (e.g., `@.claude/specs/{feature}/`) or specific files so Codex can read them directly. Invoke Codex via the Bash tool running `uv run ~/.claude/skills/codex/scripts/codex.py "<task>" [model] [workdir]` with `timeout: 7200000`; default model `gpt-5.1-codex`, alternative `gpt-5.1`. Never paste line-by-line spec text when it already lives on disk—point Codex at the directory instead.
+- **Default Codex Prompt Strategy**: Keep prompts compact—describe the task, then attach the entire artifact directory (e.g., `@.claude/specs/{feature}/`) or specific files so Codex can read them directly. Invoke Codex via the Bash tool running `uv run ~/.claude/skills/codex/scripts/codex.py "<task>" [model] [workdir]` with `timeout: 7200000`; default model `gpt-5.1-codex-max`, alternative `gpt-5.1`. Never paste line-by-line spec text when it already lives on disk—point Codex at the directory instead.
 
 ---
 
@@ -364,7 +364,7 @@ Do not invent alternative filenames when running Requirements-Pilot.
 **NOW you must delegate to Codex via the skill Bash call**:
 
 - Command: `uv run ~/.claude/skills/codex/scripts/codex.py "<prompt from Step 2>" [model] [workdir]`
-- Default model: `gpt-5.1-codex` (use `gpt-5.1` for faster general reasoning)
+- Default model: `gpt-5.1-codex-max` (use `gpt-5.1` for faster general reasoning)
 - Bash tool params: set `timeout: 7200000`
 - Resume flow: `uv run ~/.claude/skills/codex/scripts/codex.py resume <SESSION_ID> "<prompt>" [model] [workdir]`
 

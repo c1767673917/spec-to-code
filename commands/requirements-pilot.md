@@ -99,7 +99,7 @@ Save scan results to: ./.claude/specs/{feature_name}/00-repo-scan.md"
 - **Strict Ownership Boundaries**:
   - Codex Skill owns backend/API/database implementation, backend bug fixes, backend-focused tests, backend reviews (security/perf/perf), and backend architecture recommendations.
   - Claude Code owns frontend/UI/state/glue work, frontend bug fixes, frontend tests, workflow orchestration, and specification stewardship.
-- **Immediate Backend Delegation**: The moment you detect backend coding/review/bugfix work, stop manual edits and trigger Codex via the skill Bash call: `uv run ~/.claude/skills/codex/scripts/codex.py "<prompt>" "gpt-5.1-codex" [workdir]` with `timeout: 7200000`. Use `gpt-5.1` for lighter reasoning-only runs.
+- **Immediate Backend Delegation**: The moment you detect backend coding/review/bugfix work, stop manual edits and trigger Codex via the skill Bash call: `uv run ~/.claude/skills/codex/scripts/codex.py "<prompt>" "gpt-5.1-codex-max" [workdir]` with `timeout: 7200000`. Use `gpt-5.1` for lighter reasoning-only runs.
 - **Context Delivery via Paths**: Codex can read files and directories autonomously. Provide `@relative/path` attachments (files or entire directories) in prompts; only inline transient context that cannot live on disk. When specs already live under `.claude/specs/{feature_name}/`, attach the directory itself (e.g., `@.claude/specs/todo-list-app/`) so Codex can traverse it instead of you re-reading or pasting every file. The current-state/requirements/architecture docs are assumed complete before Codex is launched, so never rewrite or summarize them inline—state the new task briefly and point Codex to the directory via `@`.
 - **Standard Change Packet (Both Directions)**: Every implementation run—backend or frontend—must emit:
   - `change_summary.git_status` (raw `git status --short`)
@@ -202,7 +202,7 @@ All frontend/glue coding must be delegated to the `requirements-code` sub-agent.
     - If API endpoints are created/modified, also produce `./.claude/specs/{feature_name}/api-docs.md` including: endpoints list, request params (name/type/required/validation), success/failed responses, auth method, error codes.
     - Commit message convention: `<type>(<scope>): <subject>` (e.g., `feat(auth): implement login API`); record these in logs (no push required).
 3. **Run Codex**
-  - Execute via Bash tool: `uv run ~/.claude/skills/codex/scripts/codex.py "<prompt>" "gpt-5.1-codex" [workdir]` with `timeout: 7200000`. For quick one-shot analyses, shorten the prompt but reuse the same command; for resume, use `resume <SESSION_ID> "<prompt>"`.
+  - Execute via Bash tool: `uv run ~/.claude/skills/codex/scripts/codex.py "<prompt>" "gpt-5.1-codex-max" [workdir]` with `timeout: 7200000`. For quick one-shot analyses, shorten the prompt but reuse the same command; for resume, use `resume <SESSION_ID> "<prompt>"`.
   - Keep the prompt simple and rely on `@.claude/specs/{feature_name}/` so Codex reads the docs directly. Answer follow-up questions until Codex produces complete backend code + tests and required artifacts.
 4. **Verify Codex Artifacts**
   - Confirm Codex recorded its prompt, responses, QA notes, and the `Structured Summary` JSON block in `./.claude/specs/{feature_name}/codex-backend.md`; if anything is missing or stale, rerun Codex to fix it rather than authoring the file yourself.
@@ -223,7 +223,7 @@ After Codex finishes backend work, run the following chain:
 
 ```
 1) requirements-code agent → Reads requirements-spec + codex-backend.md (with structured data) and architecture/api-docs if present **before** touching the repository, then wires frontend/config/glue code and documents integration status.
-2) Codex Skill frontend review → Run the Codex review call via Bash tool `uv run ~/.claude/skills/codex/scripts/codex.py "<# BACKEND CODE_REVIEW prompt + change packet>" "gpt-5.1-codex" [workdir]` (`timeout: 7200000`). Codex validates API usage/data formats and raises issues (priority/type/context/impact/fix). Address feedback within ≤3 iterations.
+2) Codex Skill frontend review → Run the Codex review call via Bash tool `uv run ~/.claude/skills/codex/scripts/codex.py "<# BACKEND CODE_REVIEW prompt + change packet>" "gpt-5.1-codex-max" [workdir]` (`timeout: 7200000`). Codex validates API usage/data formats and raises issues (priority/type/context/impact/fix). Address feedback within ≤3 iterations.
 3) requirements-review agent → Produces `./.claude/specs/{feature_name}/codex-review.md` with 0–100 score and a structured issue list (ID, severity, type, path:lines, description, impact, fix plan); returns the numeric score for gating.
 4) If review score < 90% → Loop back to requirements-code for fixes referencing review feedback (and re-run Codex review if frontend changes again).
 5) If score ≥ 90% → Enter Testing Decision Gate.
