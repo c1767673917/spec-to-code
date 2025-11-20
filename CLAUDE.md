@@ -1,548 +1,68 @@
-Always ultrathink
-Always answer in Chinese
+Always ultrathink  
+Answer users in Chinese; write all workflow docs in English.
 
-# Agent Boundaries & Codex Integration (CRITICAL - READ FIRST)
+# Agent Boundaries & Codex Integration (CRITICAL)
 
-## Single Responsibility Principle
+## Ownership
+- **Codex Skill owns ALL code and audits**: implementation (frontend/backend/infra), refactors, bug fixes, code review, and tests. Agents must not edit repository code.
+- **Claude agents = orchestration + documentation**: gather/clarify requirements, write the required English docs, build and send Codex prompts, verify Codex artifacts, enforce gates, and relay decisions.
 
-Each agent has ONE clear job. Never overstep boundaries.
+## Required Artifacts (agents author)
+- Requirements document.
+- Architecture document.
+- Optional Dev Notes document (only when Codex introduces something not covered in requirements/architecture that must be explained for consumers, e.g., newly introduced API shapes). If nothing needs clarification, do not create it.
+All live in `.claude/specs/{feature}/` and stay English.
 
-### Repository Scanner
-**Job**: Scan existing code and report facts
-- ✅ **DO**: List files, detect tech stack, analyze existing patterns
-- ❌ **DON'T**: Recommend tech in empty repos, suggest architecture, create roadmaps
-- **Empty Repo Rule**: If no code exists, output < 50 lines stating "Empty - wait for constraints"
+## Quality Gates
+- Requirements + architecture must reach ≥90 score, then be sent to Codex for review; incorporate Codex feedback before any implementation call.
+- Code, review, testing, and fixes are all executed by Codex. If anything is missing or stale, rerun Codex with explicit requests.
+- Max 3 iterations for implementation/review loops; escalate after 3.
 
-### Codex Skill
-**Job**: Generate backend code
-- ✅ **DO**: Implement backend per specs, write tests, document APIs
-- ❌ **DON'T**: Make architecture decisions, choose tech stack
-- **Input Required**: Complete context from orchestrator
+## Codex Invocation Rules
+- Any code change, review, refactor, or test → call Codex via `uv run ~/.claude/skills/codex/scripts/codex.py "<prompt>" [model] [workdir]` with `timeout: 7200000` (default model `gpt-5.1-codex-max`).
+- Provide context via `@path` (dirs or files); prefer attaching `.claude/specs/{feature}/`.
+- Codex must write `codex-backend.md` with `## Structured Summary` JSON (status, change packet, tests, questions) and `api-docs.md` when endpoints change. Agents never backfill Codex-owned artifacts.
+- Standard change packet: raw `git status --short`, `git diff --stat`, per-file `{path, status, summary}`.
 
-**Violation = Immediate STOP + Report to user**
-
----
-
-- **Backend Ownership (Codex Skill)**: All API/service/database/middleware work, backend reviews (security, performance, quality), backend bug fixes, automated backend tests, and architecture recommendations always run through Codex.
-- **Frontend & Glue Ownership (Claude Code)**: All UI/state/routing work, orchestration scripts, frontend-focused tests, documentation for client usage, and workflow coordination stay with you; never delegate those to Codex.
-- **Mutual Review Loop**:
-  - After Codex ships backend changes it must deliver a change packet containing `git status --short`, `git diff --stat`, and per-file summaries (path, status, reasoning). You review API contracts, integration readiness, and compatibility before continuing.
-  - After you finish frontend/glue changes, generate the same change packet format plus API usage notes and send it to Codex for backend-side review (contract validation, data shape alignment, integration risks).
-- **Issue Reporting Standard**: Every finding exchanged during reviews must state `priority (High/Medium/Low)`, `problem type`, `context/lines`, `repro or observation`, and a concrete `fix recommendation`.
-- **Iteration Cap**: Each feedback loop (backend↔frontend) allows at most **3 iterations**. Track the counter; if unresolved after 3 exchanges, pause and escalate to the user.
-- **Autonomous File Access**: Codex Skill can open repository files/dirs itself (via `@relative/path` or autonomous exploration). Provide paths instead of pasting huge docs; only inline truly dynamic context.
-- **Default Codex Prompt Strategy**: Keep prompts compact—describe the task, then attach the entire artifact directory (e.g., `@.claude/specs/{feature}/`) or specific files so Codex can read them directly. Invoke Codex via the Bash tool running `uv run ~/.claude/skills/codex/scripts/codex.py "<task>" [model] [workdir]` with `timeout: 7200000`; default model `gpt-5.1-codex-max`, alternative `gpt-5.1`. Never paste line-by-line spec text when it already lives on disk—point Codex at the directory instead.
-
----
-
-# Repository Scanner Rules
-
-## Output Limits
-
-| Repo State | Max Lines | Content |
-|------------|-----------|---------|
-| Empty | 50 | Status + structure + "Create constraints.yaml" |
-| Small (< 50 files) | 150 | Detected stack + structure + patterns |
-| Medium (< 500 files) | 300 | Full analysis of existing code |
-| Large (500+ files) | 500 | Prioritize: stack > structure > patterns |
-
-## Empty Repository Output
-
-```markdown
-# Repository Context Analysis Report
-**Status**: 🟡 Empty Repository
-**Code files**: 0
-
-## Current Structure
-{actual directories only}
-
-## Next Steps
-1. Create `00-constraints.yaml` to define tech stack
-2. Initialize project based on requirements
-
-**END OF REPORT**
+## Emergency Stop
+If you started editing code yourself: stop, revert your edits, and call Codex. Use:
+```
+⚠️ VIOLATION DETECTED: I was about to change code without calling Codex. Stopping and delegating via codex skill now.
 ```
 
-## Non-Empty Repository Output
+## Repository Scanner Rules
+- Empty repo: <50 lines stating status and structure; ask for constraints if relevant.
+- Non-empty: report stack, structure, patterns, dependencies. Use “Detected/Found/Existing”; avoid recommendations.
 
-```markdown
-# Repository Context Analysis Report
+## Workflow Defaults
+- IMPLEMENTATION_LOG_PATH: `.claude/specs/{feature}/codex-backend.md`
+- API docs (when endpoints touched): `.claude/specs/{feature}/api-docs.md`
+- Codex review report: `.claude/specs/{feature}/codex-review.md`
+- Optional Dev Notes: `.claude/specs/{feature}/dev-notes.md`
 
-## 1. Detected Technology Stack (FACTS)
-- Language: {from files}
-- Framework: {from imports/package.json}
-- Database: {from config/ORM}
-
-## 2. Project Structure (AS-IS)
-{actual directory tree}
-
-## 3. Code Patterns (OBSERVED)
-- Naming: {detected}
-- Organization: {observed}
-
-## 4. Dependencies (EXISTING)
-{from lock files}
-
-**END OF REPORT**
+## Codex Prompt Skeleton
+```
+# [IMPLEMENTATION|BUG_FIX|CODE_REVIEW|TEST_RUN]
+## REQUIREMENTS
+@.claude/specs/{feature}/01-requirements.md summary
+## ARCHITECTURE
+@.claude/specs/{feature}/02-architecture.md summary
+## CONTEXT
+@.claude/specs/{feature}/   // Codex can crawl
+@src/... @apps/...          // code paths to open
+## TASK
+- What Codex must do (code/review/test)
+## OUTPUT
+- Write code in repo
+- Write IMPLEMENTATION_LOG_PATH with Structured Summary JSON
+- If APIs changed, update api-docs.md
+- Include change packet (git status/diff stat/per-file notes)
 ```
 
-## Forbidden Phrases
-
-**Never use**:
-- ❌ "You should consider..."
-- ❌ "Recommended..."
-- ❌ "Best practice..."
-- ❌ "Popular choices..."
-
-**Use instead**:
-- ✅ "Detected: X"
-- ✅ "Found: Y"
-- ✅ "Existing: Z"
-
----
-
-# Codex Skill - Backend Code Generation Tool
-
-## Role Definition
-
-**Codex Skill = Autonomous Backend Partner**
-- Can independently read local files/dirs that you reference with `@path` (and may explore nearby code when needed)
-- Implements backend code, tests, security/perf reviews, and bug fixes end-to-end
-- Supports advanced reasoning, planning, documentation, and optional web search
-- Executes via Bash tool calling `uv run ~/.claude/skills/codex/scripts/codex.py`
-
-**You (Claude Code) = Workflow Lead**
-- Decide when to involve Codex (any backend-touching task)
-- Supply authoritative context + file paths so Codex knows what to read
-- Coordinate mutual reviews and track iteration counts
-- Handle frontend/glue implementation and respond to Codex feedback
-
----
-
-## 🚨 CRITICAL: Codex Invocation Rules
-
-### Self-Check Protocol (MANDATORY BEFORE ANY BACKEND WORK)
-
-**Before writing ANY backend code, ask yourself**:
-
-```
-Q1: Am I about to write backend code? (API, service, database, middleware)
-    → YES: STOP. Go to "Execute Codex Call" below.
-    → NO: Launch the requirements-code sub-agent (after artifact intake) for any frontend/docs work.
-
-Q2: Am I fixing a backend bug?
-    → YES: STOP. Go to "Execute Codex Call" below.
-    → NO: Launch the requirements-code sub-agent (after artifact intake) for any frontend bug fix.
-
-Q3: Am I reviewing backend code?
-    → YES: STOP. Go to "Execute Codex Call" below.
-    → NO: Launch the requirements-code sub-agent (after artifact intake) for any frontend review.
-```
-
-**If you answered YES to any question above**:
-1. **IMMEDIATELY STOP** what you're doing
-2. **DELETE** any backend code you just wrote (if applicable)
-3. **EXECUTE** Codex call following "How to Call Codex" section below
-4. **DO NOT PROCEED** until Codex responds
-
----
-
-## When to Call Codex
-
-### ✅ MANDATORY Codex Call Scenarios
-
-**Backend API Implementation**:
-- RESTful endpoints
-- GraphQL resolvers
-- RPC services
-- WebSocket handlers
-
-**Backend Business Logic**:
-- Data processing algorithms
-- Business rule implementation
-- Workflow orchestration
-
-**Database Operations**:
-- ORM model definitions
-- Database migration scripts
-- Complex query implementation
-
-**Backend Bug Fixes**:
-- API/server/database errors
-- Performance issues
-- Backend logic errors
-
-**Backend Code Review**:
-- Security vulnerability checks
-- Performance analysis
-- Backend code quality review
-
-### ❌ Do NOT Call Codex Scenarios
-
-**Frontend Development**: UI components, state management, routing, CSS
-
-**Planning & Design**: Requirements analysis, architecture design, tech selection
-
-**Documentation**: PRD, architecture docs (except API docs)
-
----
-
-## 🛡️ Violation Detection & Self-Correction
-
-**If you catch yourself**:
-- Writing backend code directly → **STOP, DELETE, CALL CODEX**
-- Modifying backend files → **STOP, REVERT, CALL CODEX**
-- Fixing backend bugs manually → **STOP, CALL CODEX**
-- Reviewing backend without Codex → **STOP, CALL CODEX**
-
-**Emergency Stop Phrase**:
-If at ANY point you realize you're violating this rule, immediately output:
-```
-⚠️ VIOLATION DETECTED: I was about to [action] without calling Codex.
-CORRECTIVE ACTION: Stopping immediately and calling Codex via the codex skill (`uv run ~/.claude/skills/codex/scripts/codex.py ...`).
-```
-
----
-
-## How to Call Codex (4-Step Mandatory Process)
-
-### Step 1: Prepare Context (READ EVERYTHING THAT MATTERS)
-
-Before touching Codex, gather *every* artifact that constrains backend work. Cover these categories, in whatever files your current workflow provides:
-
-1. **Technology Constraints** – the document(s) that lock stack selections, versions, hosting limits, etc.
-2. **Confirmed Requirements / PRD** – the authoritative scope you and the user agreed on.
-3. **Architecture / System Design** – component boundaries, data models, interfaces.
-4. **Sprint / Task Plan** – the backlog slice that describes what Codex must build right now.
-5. **Frontend/API Contract** – anything that defines request/response shapes or integration rules.
-6. **Repository Context** – the latest scan/report of existing code (directory layout, stack, patterns).
-
-For each category:
-- Identify which file(s) supply the information (create/refresh them if missing).
-- Read them fully so you can summarize constraints accurately.
-- Decide which repository files Codex must inspect directly; list them in Step 2 using `@relative/path` (file or directory). Codex will open those paths autonomously, so you only need to inline content when data is generated on-the-fly or cannot be stored on disk.
-- **Directory Shortcut**: When an entire artifact bundle already exists under `.claude/specs/{feature_name}/`, attach the directory itself in Step 2 (e.g., `@.claude/specs/todo-list-app/`). Codex can traverse the folder and load whichever files it needs, which means you avoid re-reading or pasting long documents purely for context hand-off. You still must understand the material, but you no longer have to duplicate it inside the prompt.
-
-If a category truly does not exist for this task, call it out explicitly in the prompt and explain why (e.g., “No sprint plan yet—single ad-hoc fix”). Do **not** continue until every category is either read or formally declared absent.
-
-**CHECKPOINT**: Confirm all categories are covered before moving to Step 2.
-
----
-
-### Step 2: Build Complete Prompt
-
-**Template** (fill in ALL sections):
-
-```markdown
-# BACKEND [IMPLEMENTATION|BUG_FIX|CODE_REVIEW]
-
-## TECHNOLOGY CONSTRAINTS (MUST FOLLOW - NON-NEGOTIABLE)
-[summarize the non-negotiable constraints and reference the source file(s) via `@path`, e.g., `@.claude/specs/{feature}/00-constraints.yaml`]
-
-**ENFORCEMENT**: Use ONLY the specified tech stack. Any deviation = FAILURE.
-
-## PRODUCT REQUIREMENTS
-[summarize confirmed requirements and cite the authoritative doc via `@.claude/specs/{feature}/01-requirements-brief.md` or equivalent]
-
-## SYSTEM ARCHITECTURE
-[Reference `@.claude/specs/{feature}/02-architecture.md` (or the architecture section embedded in the brief) and capture only the key highlights needed for Codex; avoid pasting the entire document.]
-
-## SPRINT PLAN - BACKEND TASKS ONLY
-[summarize the current sprint/task list and note the file that contains the full breakdown]
-
-## REPOSITORY CONTEXT
-[summarize the latest repository scan and attach the directory/file containing the full context]
-
-## FRONTEND API CONTRACT (CRITICAL - EXACT MATCH REQUIRED)
-[summarize the API contract highlights and point Codex to the source doc (e.g., `@.claude/specs/{feature}/api-docs.md`)]
-
-## CODE CONTEXT (ATTACH VIA @path)
-- List every repository file or directory Codex must open with `@relative/path`, e.g.
-  - `@internal/api`
-  - `@cmd/server/main.go`
-- Use directories for modules with many small files; Codex can recurse as needed.
-- For gigantic assets, attach only the critical slices (e.g., `@docs/api/README.md#L1-L120`) and summarize what was omitted (and why).
-
-**CRITICAL**: Backend responses MUST match:
-- Exact field names (camelCase/snake_case as specified)
-- Exact data types
-- Exact error format
-- Exact authentication flow
-
----
-
-## YOUR SPECIFIC TASK
-
-[Write clear, specific instructions for current backend work]
-
-Examples:
-- "Implement user authentication API endpoints per architecture"
-- "Fix bug: login endpoint returns 500 when email is invalid"
-- "Review UserService.ts for security vulnerabilities"
-
----
-
-## OUTPUT REQUIREMENTS
-
-### 1. Code Implementation
-- Implement ALL code in repository (not in markdown; do not use apply_patch)
-- Follow project structure from architecture
-- Write tests alongside implementation
-- Run tests and ensure passing
-- After coding, capture change summary via `git status --short` and `git diff --stat`
-
-### 2. Implementation Log (path defined by your workflow)
-Before Step 3, choose the canonical file that will store Codex’s implementation log (e.g. `.claude/specs/{feature}/codex-backend.md`, `.claude/specs/{feature}/04-backend/implementation.md`, etc.) and state that path inside the prompt. Codex must write this file itself during the backend run—do **not** rely on downstream agents to create or edit it. Whatever path you choose, it **must** contain:
-- Summary (sprint, tasks completed, files modified, test coverage %)
-- Change Summary (git status --short output, git diff --stat output, per-file notes highlighting added/modified/deleted files with reasons)
-- Implemented Features (with file paths, test results, API endpoints)
-- Technical Decisions (why you made certain choices)
-- Questions for Review (priority High/Medium/Low, context, your recommendation)
-- Self-Review Checklist (constraints compliance, tests status, coverage %)
-- A `## Structured Summary` section whose fenced JSON payload follows this schema (replacing the old standalone `codex-output.json` file):
-```json
-{
-  "timestamp": "ISO 8601",
-  "status": "completed|partial|failed",
-  "tasks_completed": ["task1", "task2"],
-  "files_changed": ["path1", "path2"],
-  "tests_written": 15,
-  "tests_passing": 15,
-  "coverage_percent": 85,
-  "change_summary": {
-    "git_status": ["M src/api/users.py", "A migrations/001.sql"],
-    "git_diff_stat": [
-      " src/api/users.py | 45 ++++++++++++++++++++++++++++++",
-      " migrations/001.sql | 12 ++++++++"
-    ],
-    "files": [
-      {
-        "path": "src/api/users.py",
-        "status": "modified",
-        "summary": "Updated handlers to enforce password validation"
-      }
-    ]
-  },
-  "questions": [
-    {
-      "priority": "high|medium|low",
-      "question": "specific question",
-      "context": "why this matters",
-      "recommendation": "what I suggest"
-    }
-  ],
-  "self_review": {
-    "constraints_followed": true,
-    "all_tasks_completed": true,
-    "tests_passing": true,
-    "api_contract_matched": true
-  }
-}
-```
-```
-
-Record this path as `IMPLEMENTATION_LOG_PATH`; you will reference it in later steps. If your workflow mandates additional artifacts (manifest entries, review notes, QA summaries, etc.), declare them in the prompt and hold Codex accountable for writing them.
-
----
-
-### Requirements-Pilot Integration Defaults
-
-When executing inside the Requirements-Pilot workflow, use these canonical artifact paths to avoid conflicts with sub-agents and documentation:
-
-- `IMPLEMENTATION_LOG_PATH = ./.claude/specs/{feature}/codex-backend.md`
-- If backend APIs are created/modified: `./.claude/specs/{feature}/api-docs.md`
-- If `doc_profile` is standard/full: `ARCHITECTURE_PATH    = ./.claude/specs/{feature}/02-architecture.md` (for minimal, architecture is embedded within `01-requirements-brief.md`)
-
-Downstream review artifacts are produced by sub-agents and must use:
-
-- Code review report (all profiles): `./.claude/specs/{feature}/codex-review.md`
-
-Do not invent alternative filenames when running Requirements-Pilot.
-
-### Step 3: EXECUTE Codex Skill Call
-
-**NOW you must delegate to Codex via the skill Bash call**:
-
-- Command: `uv run ~/.claude/skills/codex/scripts/codex.py "<prompt from Step 2>" [model] [workdir]`
-- Default model: `gpt-5.1-codex-max` (use `gpt-5.1` for faster general reasoning)
-- Bash tool params: set `timeout: 7200000`
-- Resume flow: `uv run ~/.claude/skills/codex/scripts/codex.py resume <SESSION_ID> "<prompt>" [model] [workdir]`
-
-Keep the prompt concise and attach the authoritative docs via `@.claude/specs/{feature}/` (or the exact file paths) instead of pasting their contents.
-
-**EXECUTION CHECKPOINT**:
-- Have you prepared the complete prompt? → If NO, go back to Step 2
-- Have you verified all context files exist? → If NO, go back to Step 1
-- Are you ready to call the tool NOW? → If YES, execute below
-
-**DO IT NOW**:
-Run the codex skill command above with the prepared prompt.
-
-**DO NOT PROCEED** to Step 4 until the tool returns a response.
-
----
-
-### Step 4: Verify Codex Output (MANDATORY CHECKS)
-
-**File Existence Verification**:
-```
-□ IMPLEMENTATION_LOG_PATH exists (the exact file you defined in the prompt)
-□ Backend code files exist in repository
-□ Test files exist in repository
-```
-
-**Content Validation**:
-```
-□ Read IMPLEMENTATION_LOG_PATH → Structured Summary JSON `status` is not "failed"
-□ Structured Summary `tests_passing` > 0 (unless tests intentionally skipped with approval)
-□ Structured Summary `change_summary.git_status` & `git_diff_stat` populated
-□ Compare `change_summary.files[]` notes against actual repository edits
-□ Confirm every @file listed in the prompt is represented in change_summary or explicitly marked as read-only/no-change inside IMPLEMENTATION_LOG_PATH
-□ Verify IMPLEMENTATION_LOG_PATH narrative documents all backend tasks and decisions
-```
-
-**Quality Checks**:
-```
-□ Run tests → all passing?
-□ Check coverage → meets target (>80%)?
-□ Review IMPLEMENTATION_LOG_PATH → technical decisions + change summary make sense?
-□ Check Structured Summary `questions[]` → any blockers?
-□ Forward Codex's change packet (git status/diff/per-file notes) and API docs to downstream agents before any frontend/glue work starts
-```
-
-**Missing Artifact Protocol**:
-If any required Codex-owned artifact (implementation log with Structured Summary, API docs) is missing or obviously stale after a run:
-1. Stop immediately — do **not** author or backfill the file yourself.
-2. Re-run the same codex skill command with the identical context plus an explicit reminder that the artifact must be written.
-3. Repeat the verification checklist. Only escalate to manual fixes if Codex is unavailable and you've recorded the outage in the manifest.
-
-**IF ANY CHECK FAILS**:
-- Document which check failed
-- Go to Step 5 (Review & Iterate)
-- DO NOT mark task as complete
-
----
-
-### Step 5: Review Codex Questions & Decide Next Action
-
-**Review change summary first**:
-- Inspect Structured Summary `change_summary` (git status, diff stat, per-file notes)
-- Cross-check against IMPLEMENTATION_LOG_PATH narrative
-- Note any unexpected edits before proceeding
-
-**Then read** Structured Summary `questions` array
-
-**For EACH question**:
-1. **Understand**: Read question + context + recommendation
-2. **Decide**: Make clear decision (approve, modify, reject)
-3. **Document**: Write to the review answers file defined by your workflow (pick a path ahead of time, e.g. `.claude/specs/{feature}/review-answers.md`)
-
-**Answer Template**:
-```markdown
-## Review Answers - [Date]
-
-### Question 1: [title]
-**Codex Question**: [paste question]
-**Codex Recommendation**: [paste recommendation]
-**My Decision**: [Approve | Modify | Reject]
-**Reason**: [explain your decision]
-**Action Required**: [specific changes needed, if any]
-
-[Repeat for each question]
-```
-
-**Decision Matrix**:
-```
-Codex Questions = 0 AND Tests Passing AND Coverage Good
-  → ✅ Mark complete, move to next task
-
-Codex Questions > 0 OR Tests Failing OR Coverage Low
-  → 🔄 Prepare revision (max 3 iterations total)
-  → Update the review answers file with your decisions
-  → Call Codex again with feedback
-
-Iterations = 3 AND Still has issues
-  → ⚠️ ESCALATE TO USER
-  → Document blockers
-  → Request user guidance
-```
-
-**Finding Format (MANDATORY)**:
-- Each issue you raise back to Codex must include `priority (High|Medium|Low)`, `type`, `path:line context or repro`, `impact`, and `recommended fix/next step`.
-- Maintain an iteration counter per backend task; once you hit 3 review loops without satisfactory resolution, pause and escalate.
-
----
-
-### Step 6: Backend Revision (If Step 5 requires changes)
-
-**Iteration Counter**: Track attempts (1, 2, 3)
-
-**Prepare Revision Prompt**:
-```markdown
-# BACKEND REVISION - Iteration [N/3]
-
-## ORIGINAL CONTEXT
-[paste complete context from Step 2]
-
-## REVIEW FEEDBACK
-[paste the contents of your review answers file]
-
-## SPECIFIC CHANGES REQUIRED
-[extract action items from review-answers.md]
-
-## YOUR TASK
-1. Address ALL feedback points
-2. Make ONLY necessary changes
-3. Re-run all tests
-4. Update IMPLEMENTATION_LOG_PATH with revision log
-
-## REVISION LOG REQUIREMENTS
-Add to IMPLEMENTATION_LOG_PATH:
-### Revision [N] - [Date]
-- **Issues Fixed**: [list]
-- **Questions Addressed**: [list]
-- **Test Results**: [pass/fail counts]
-- **Changes Made**: [file paths and descriptions]
-```
-
-**Execute**: Re-run the codex skill command with the revision prompt (`uv run ~/.claude/skills/codex/scripts/codex.py "<prompt>" [model] [workdir]`)
-
-**After Response**: Go back to Step 4 (Verify Output)
-
-**Iteration Limit**: If iteration = 3 and still failing → **STOP and ESCALATE TO USER**
-
----
-
-## Frontend Completion → Codex Review Workflow
-
-1. **As soon as frontend/glue work is done**, capture a change packet with:
-   - `git status --short`
-   - `git diff --stat`
-   - Per-file notes (path, status, reason for change)
-   - Summary of API calls/data contracts touched, including payload/request/response examples.
-2. **Provide Codex with review context**:
-   - Reference all relevant frontend files via `@path`.
-   - Include the change packet plus any open questions or risks.
-   - Use the `# BACKEND CODE_REVIEW` prompt pattern so Codex knows it should review (not implement).
-3. **Run the codex skill for review** using the standard command (`uv run ~/.claude/skills/codex/scripts/codex.py "<prompt>" [model] [workdir]`, `timeout: 7200000`) and wait for Codex’s feedback focusing on:
-   - API usage correctness
-   - Data format alignment
-   - Backend integration risks or missing endpoints
-4. **Handle Findings**:
-   - Record each Codex issue with priority/type/context/fix.
-   - Address them within 3 iterations; if the loop would exceed 3, stop and escalate.
-   - Update your implementation log with what changed during the fix.
-
-This review step is mandatory before closing any feature that touches backend APIs.
-
----
-
-## Core Principles
-
-**Remember**: Codex is the Tool, You are the Master
-
-1. **Backend Tasks → Codex**
-2. **Complete Context → Must** (every category: constraints, requirements, architecture, plan, API contract, repo context)
-3. **Iteration Limit → 3 times**
-
-**Technology Constraint Compliance = 100%**
+## Verification Checklist (agents)
+1) `codex-backend.md` exists; Structured Summary present; status not failed.  
+2) change_summary has git status + diff stat + per-file notes.  
+3) Tests reported and (unless intentionally skipped) passing.  
+4) API docs present if endpoints changed.  
+5) Codex questions resolved within ≤3 iterations; otherwise escalate.  
+6) No agent-authored code edits; all diffs trace to Codex runs.

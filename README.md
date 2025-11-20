@@ -15,7 +15,7 @@ This project provides two core workflows focused on practicality and efficiency:
 1. **Requirements-Pilot** - Requirements-driven development workflow
 2. **Bugfix** - Systematic bug resolution workflow
 
-Both workflows integrate **Codex Skill** to ensure all backend code generation is unified, high-quality, and traceable.
+Both workflows integrate **Codex Skill** to ensure all code generation is unified, high-quality, and traceable.
 
 ---
 
@@ -44,22 +44,22 @@ graph LR
 
 ### Key Features
 
-- **🎯 Requirements-First**: Automatically generates detailed technical specifications
-- **🧠 Codex Backend**: All backend/API/database development enforced through Codex Skill
-- **🤖 Frontend Sub-Agent**: Dedicated requirements-code agent reads all artifacts before writing frontend/glue code
+- **🎯 Requirements-First**: Agents generate requirements and architecture docs (English) with ≥90 score
+- **🧠 Codex Everywhere**: All code, review, and testing executed by Codex Skill
+- **🔍 Spec Review by Codex**: Specs sent to Codex for feedback before implementation
 - **✅ Quality Gates**: 90% quality threshold with automatic optimization
 - **📁 Persistent Artifacts**: All documents saved to `.claude/specs/`
 - **🔄 Iterative Refinement**: Automatic improvement until quality met
-- **🧪 Test-Driven**: Functional and integration testing
+- **🧪 Test-Driven**: Codex creates and runs tests
 
 ### Agent Roles
 
 | Agent | Responsibility | Output |
 |-------|----------------|--------|
-| **requirements-generate** | Analyze requirements and generate technical specs | `requirements-spec.md` |
-| **requirements-code** | Dedicated frontend/glue sub-agent that reads specs + Codex artifacts before coding | Source code files |
-| **requirements-review** | Functionality and integration review | `codex-review.md` |
-| **requirements-testing** | Functional validation and integration testing | `test-report.md` |
+| **requirements-generate** | Author requirements (`01-requirements.md`) and architecture (`02-architecture.md`) docs; iterate to ≥90; get Codex spec feedback | Docs in `.claude/specs/{feature}/` |
+| **requirements-code** | Orchestrate Codex implementation (all code + tests) | Codex writes `codex-backend.md`, `api-docs.md` |
+| **requirements-review** | Orchestrate Codex code review | Codex writes `codex-review.md` |
+| **requirements-testing** | Orchestrate Codex test runs | Results recorded in `codex-backend.md` |
 
 ### Workflow Artifacts
 
@@ -67,12 +67,13 @@ Each run creates structured documentation:
 
 ```
 .claude/specs/jwt-authentication/
-├── 00-repo-scan.md           # Repository scan analysis
-├── requirements-spec.md      # Technical specification
-├── 02-architecture.md        # System architecture (standard/full; minimal embeds in brief)
-├── codex-backend.md          # Codex backend implementation log + structured summary
-├── codex-review.md           # Code review report
-└── test-report.md           # Testing validation report
+├── 00-repo-scan.md        # Repository scan analysis (if not skipped)
+├── 01-requirements.md     # Requirements (agent-authored, ≥90)
+├── 02-architecture.md     # Architecture (agent-authored, ≥90)
+├── dev-notes.md           # Optional clarifications (only if needed)
+├── codex-backend.md       # Codex implementation log + Structured Summary
+├── api-docs.md            # Codex API docs (when endpoints change)
+└── codex-review.md        # Codex code review report
 ```
 
 ### Usage Examples
@@ -113,27 +114,28 @@ graph LR
 
 ### Key Features
 
-- **🔍 Root Cause Analysis**: Systematic problem analysis
-- **🧠 Codex Backend Fixes**: Backend bugs enforced through Codex Skill
-- **🧪 Fix Verification**: Independent verification of fix quality
-- **📊 Regression Prevention**: Ensures no new issues introduced
-- **📝 Complete Documentation**: Records problems and solutions
+- **🔍 Root Cause Analysis**: Systematic problem analysis via prompts
+- **🧠 Codex-Only Fixes**: All code changes and tests executed by Codex Skill
+- **🧪 Codex Verification**: Codex review loop with ≤3 iterations
+- **📊 Regression Prevention**: Codex-run tests recorded in logs
+- **📝 Documentation**: Codex logs + optional clarifications when needed
 
 ### Agent Roles
 
 | Agent | Responsibility | Output |
 |-------|----------------|--------|
-| **bugfix** | Analyze problem and implement fix | Fix code + `bugfix-log.md` |
-| **bugfix-verify** | Independent verification of fix quality | `verification-report.md` |
+| **bugfix** | Collect context and orchestrate Codex fix | Codex writes `codex-backend.md` (+ `api-docs.md` if needed) |
+| **bugfix-verify** | Orchestrate Codex verification | Codex writes `codex-review.md` |
 
 ### Workflow Artifacts
 
 ```
 .claude/specs/login-500-error/
-├── 00-repo-scan.md           # Repository context
-├── bugfix-log.md            # Problem analysis and fix log
-├── codex-backend.md          # Codex backend fix log (with structured summary, if applicable)
-└── verification-report.md   # Fix verification report
+├── 00-repo-scan.md     # Repository context (if not skipped)
+├── dev-notes.md        # Optional clarifications (only if needed)
+├── codex-backend.md     # Codex fix log with Structured Summary
+├── api-docs.md          # Codex API docs if endpoints changed
+└── codex-review.md      # Codex verification report
 ```
 
 ### Usage Examples
@@ -153,26 +155,26 @@ graph LR
 
 ## 🧠 Codex Skill Integration
 
-Both workflows enforce Codex Skill for all backend code generation.
+Both workflows enforce Codex Skill for all code (frontend, backend, tests) plus reviews.
 
 ### Automatic Codex Call Scenarios
 
-**Backend Development**:
-- RESTful API endpoints
-- GraphQL resolvers
+**Development (all layers)**:
+- REST/GraphQL/API endpoints
+- Frontend components, state, routing
 - Database operations (ORM models, migrations, queries)
 - Business logic implementation
 - Middleware and services
 
-**Backend Bug Fixes**:
-- API/server errors
-- Database query issues
+**Bug Fixes**:
+- API/server/database errors
+- Frontend/runtime errors
 - Performance problems
-- Backend logic errors
+- Logic errors
 
 ### Codex Output Documentation
 
-Each Codex call now generates a single implementation log, and **Codex must write it during the same run that produces the backend code**—other agents only verify its contents:
+Each Codex call now generates a single implementation log, and **Codex must write it during the same run that produces the code**—other agents only verify its contents:
 
 - **codex-backend.md** – Narrative log plus a `## Structured Summary` fenced JSON block
   - Narrative: task summary, modified files list, technical decisions, QA notes/questions
@@ -265,16 +267,18 @@ All workflow artifacts saved in `.claude/specs/` directory, organized by feature
 .claude/specs/
 ├── user-registration/        # Requirements-pilot artifacts
 │   ├── 00-repo-scan.md
-│   ├── requirements-spec.md
+│   ├── 01-requirements.md
 │   ├── 02-architecture.md
+│   ├── dev-notes.md          # Optional
 │   ├── codex-backend.md
-│   ├── codex-review.md
-│   └── test-report.md
+│   ├── api-docs.md           # If endpoints changed
+│   └── codex-review.md
 └── email-verification-bug/   # Bugfix artifacts
     ├── 00-repo-scan.md
-    ├── bugfix-log.md
+    ├── dev-notes.md          # Optional
     ├── codex-backend.md
-    └── verification-report.md
+    ├── api-docs.md           # If endpoints changed
+    └── codex-review.md
 ```
 
 ---
@@ -329,4 +333,4 @@ MIT License - see [LICENSE](LICENSE) file
 
 **Requirements-driven development, systematic bug fixing** - Simple, practical, high-quality.
 
-*Codex handles the backend, you focus on business logic.*
+*Codex handles all code and validation; agents keep the plan and docs aligned.*

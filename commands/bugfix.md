@@ -1,76 +1,24 @@
 ## Usage
-`/project:bugfix <ERROR_DESCRIPTION>`
+`/project:bugfix <ERROR_DESCRIPTION> [OPTIONS]`
+
+### Options
+- `--skip-scan`: Skip repository scan (not recommended)
+- `--skip-tests`: Skip Codex test execution
 
 ## Context
 - Error description: $ARGUMENTS
-- Relevant code files will be referenced using @ file syntax as needed.
-- Error logs and stack traces will be analyzed in context.
+- All code, review, and tests are executed by **Codex Skill**
+- Agents collect context, build prompts, and gate quality; they do not edit code
 
-## Your Role
-You are the **Bugfix Workflow Orchestrator** managing an automated debugging pipeline using Claude Code Sub-Agents. You coordinate a quality-gated workflow that ensures high-quality fixes through intelligent validation loops.
+## Workflow
+1) **Scan** (unless `--skip-scan`): Save facts to `.claude/specs/{issue}/00-repo-scan.md`.  
+2) **Confirm scope**: Collect logs/repro info; ensure constraints are clear.  
+3) **Codex Fix**: Prompt Codex with repo context + issue; Codex implements fix, writes `codex-backend.md` (Structured Summary) and `api-docs.md` if endpoints change.  
+4) **Codex Verification**: Run Codex review to produce `codex-review.md` and resolve findings (≤3 iterations).  
+5) **Testing**: If not `--skip-tests`, have Codex run/create tests; record results in `codex-backend.md` (and `dev-notes.md` only if clarifications are required).  
+6) **Close**: Ensure Structured Summary status not `failed`, change packet present, and blocker questions resolved.
 
-You adhere to core software engineering principles like KISS (Keep It Simple, Stupid), YAGNI (You Ain't Gonna Need It), and SOLID to ensure fixes are robust, maintainable, and pragmatic.
-
-## Sub-Agent Chain Process
-
-Execute the following chain using Claude Code's sub-agent syntax:
-
-```
-First use the bugfix sub agent to analyze and implement fix for [$ARGUMENTS], then use the bugfix-verify sub agent to validate fix quality with scoring, then if score ≥90% complete workflow with final report, otherwise use the bugfix sub agent again with validation feedback and repeat validation cycle.
-```
-
-## Workflow Logic
-
-### Quality Gate Mechanism
-- **Validation Score ≥90%**: Complete workflow successfully
-- **Validation Score <90%**: Loop back to bugfix sub agent with feedback
-- **Maximum 3 iterations**: Prevent infinite loops while ensuring quality
-
-### Chain Execution Steps
-1. **bugfix sub agent**: Analyze root cause and implement targeted fix
-2. **bugfix-verify sub agent**: Independent validation with quality scoring (0-100%)
-3. **Quality Gate Decision**:
-   - If ≥90%: Generate final completion report
-   - If <90%: Return to bugfix sub agent with specific improvement feedback
-4. **Iteration Control**: Track attempts and accumulate context for refinement
-
-## Expected Iterations
-- **Round 1**: Initial fix attempt (typically 70-85% quality)
-- **Round 2**: Refined fix addressing validation feedback (typically 85-95%)
-- **Round 3**: Final optimization if needed (90%+ target)
-
-## Key Workflow Features
-
-### Intelligent Feedback Integration
-- **Context Accumulation**: Build knowledge from previous attempts
-- **Targeted Improvements**: Specific feedback guides next iteration
-- **Root Cause Focus**: Address underlying issues, not just symptoms
-- **Quality Progression**: Each iteration improves overall solution quality
-
-### Automated Quality Control
-- **Independent Validation**: Objective assessment prevents confirmation bias
-- **Scoring System**: Quantitative quality measurement (0-100%)
-- **Production Readiness**: 90% threshold ensures deployment-ready fixes
-- **Risk Assessment**: Comprehensive evaluation of potential side effects
-
-## Output Format
-1. **Workflow Initiation** - Start sub-agent chain with error description
-2. **Progress Tracking** - Monitor each sub-agent completion and quality scores
-3. **Quality Gate Decisions** - Report validation scores and iteration actions
-4. **Completion Summary** - Final fix with validation report and deployment guidance
-
-## Key Benefits
-- **Automated Quality Assurance**: 90% threshold ensures reliable fixes
-- **Iterative Refinement**: Validation feedback drives continuous improvement
-- **Independent Contexts**: Each sub-agent works in clean environment
-- **One-Command Execution**: Single command triggers complete debugging workflow
-- **Production-Ready Results**: High-quality fixes ready for deployment
-
-## Success Criteria
-- **Effective Resolution**: Fix addresses root cause of the reported issue
-- **Quality Validation**: 90%+ score indicates production-ready solution
-- **Clear Documentation**: Comprehensive explanation of changes and rationale
-- **Risk Mitigation**: Potential side effects identified and addressed
-- **Testing Guidance**: Clear verification and testing recommendations
-
-Simply provide the error description and let the sub-agent chain handle the complete debugging workflow automatically.
+## Gates
+- All coding/review/testing by Codex.  
+- Max 3 Codex iterations in review loops; escalate afterward.  
+- Artifacts (codex-backend, codex-review, api-docs when needed) must exist; rerun Codex if missing/stale.
