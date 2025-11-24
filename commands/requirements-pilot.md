@@ -33,27 +33,30 @@ You must:
 All artifacts live in `.claude/specs/{feature}/` and are written in English.
 
 ## Workflow
-1) **Scan** (unless `--skip-scan`): Analyze repo facts and save to `.claude/specs/{feature}/00-repo-scan.md`.  
+1) **Scan** (unless `--skip-scan`): A fixed sub‑agent performs the repo scan and saves to `.claude/specs/{feature}/00-repo-scan.md`.  
 2) **Requirements (with sub‑agents + rubric)**: Coordinate the `requirements-generate`
    agent and its sub‑agents to draft `01-requirements.md`. Run an interactive
    clarification loop with the user until the requirements doc scores ≥90/100 by
    rubric; then ask the user if they want to proceed to architecture.  
-3) **Architecture (agent skeleton + Codex expansion)**: After the user approves
-   the requirements doc, `requirements-generate` manually sketches an ultra-
-   minimal architecture proposal, confirms it with the user, then hands the
-   approved skeleton plus repo scan + requirements to Codex (via `@.claude/specs/{feature}/...`)
-   so Codex expands it into the full `02-architecture.md`. The agent reviews,
+3) **Architecture (ask user + Codex expansion)**: After the user approves the
+   requirements doc, the main agent asks the user for a simple architecture
+   skeleton (no new doc), confirms it, then the main agent hands the approved
+   skeleton plus repo scan + requirements to Codex (via `@.claude/specs/{feature}/...`)
+   to expand into the full `02-architecture.md`. The main agent reviews,
    manually edits, and scores the resulting doc (≥90) before asking the user
    whether to proceed to implementation.  
-4) **Implementation by Codex**: If the user approves, build a compact Codex
-   prompt (attach `.claude/specs/{feature}/` + code paths). Codex implements all
-   code/tests, writes `codex-backend.md` (with Structured Summary), and
-   `api-docs.md` if APIs change.  
-5) **Codex Review**: Run Codex code review to generate `codex-review.md`; resolve
-   findings (≤3 iterations).  
-6) **Testing**: If not `--skip-tests`, have Codex run/create tests and record
-   results in `codex-backend.md` (and `dev-notes.md` only when clarifications
-   are required).  
+4) **Implementation by Codex (main agent orchestrates)**: If the user approves,
+   the main agent builds a compact Codex prompt (attach `.claude/specs/{feature}/`
+   + code paths). Codex implements all code/tests, writes `codex-backend.md`
+   (with Structured Summary), and `api-docs.md` if APIs change.  
+5) **Dual Review (Codex + sub‑agent)**: Run Codex code review and a sub‑agent
+   review in parallel; the main agent merges the findings, scores the project,
+   and if the score <90, calls Codex to fix and repeats until ≥90 (≤3 iterations
+   per loop).  
+6) **Testing (main agent orchestrates)**: If not `--skip-tests`, the main agent
+   has Codex run/create tests and ensures results are recorded in
+   `codex-backend.md` (and `dev-notes.md` only when clarifications are
+   required).  
 7) **Close**: Ensure all required artifacts exist and Structured Summary status
    is not `failed`.
 

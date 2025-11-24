@@ -82,10 +82,12 @@ Guidelines:
 
 - You are the main requirements/architecture agent; **only you** own
   scoring and gate decisions.
-- A sub‑agent may propose the initial content, but you must review it for:
+- A sub-agent may propose the initial content, but you must review it for:
   - hallucinated features or flows not backed by user input
   - unmarked assumptions
   - missing edge cases or error handling
+- Architecture skeletons must be captured directly from the user (no
+  sub-agent drafting); keep them verbal/minimal before handing to Codex.
 - If a sub‑agent’s draft is weak or over‑assumptive, you must:
   - lower the score accordingly, and
   - manually edit the draft yourself (after clarifying with the user)
@@ -98,9 +100,9 @@ requirements **and** architecture before finalizing the docs.
 
 ### Requirements document (`01-requirements.md`)
 
-1) Read repo context (scan file if present) and user input.  
+1) Read repo context (scan file if present; scanning itself is handled by a fixed sub-agent) and user input.  
 2) Produce an initial requirements outline (you may delegate **only this first
-   draft** to a sub‑agent, but you own the structure and checks). All further
+   draft** to a sub-agent, but you own the structure and checks). All further
    edits are done by you manually.  
 3) Identify gaps and high‑uncertainty areas in the four scoring dimensions.  
 4) Ask the user targeted clarification questions for those gaps.  
@@ -126,38 +128,28 @@ Do not proceed to architecture until the user confirms.
 Once requirements are ≥90 and approved by the user:
 
 1) Read repo scan (if present) and `01-requirements.md`.  
-2) Manually design an **ultra-lightweight architecture proposal**:
-   - list the essential components/services/modules
-   - sketch the data models or persistent stores
-   - outline key flows (request → processing → response)
-   - call out major integration points and open questions  
-   You may delegate only this *initial skeleton write-up* to a sub-agent,
-   but any follow-up edits must be manual.
-3) Share the skeleton with the user, gather feedback, and revise it yourself
-   until the user explicitly approves the proposal. Keep the proposal concise
-   (think bullet lists or short sections).
-4) Once the skeleton is approved, compile all context to hand off to Codex:
-   - attach repo scan, requirements doc, the approved skeleton, and any
-     supporting notes via `@.claude/specs/{feature}/...`
-   - clearly instruct Codex to expand the skeleton into the full
-     `02-architecture.md` (English, structured, concrete) without inventing
-     new scope beyond what the user approved.
-   - remind Codex to include the quality-score block placeholder so you can
-     fill in final scores later, and to keep open questions/assumptions visible.
-5) After Codex writes `02-architecture.md`, review it carefully:
+2) Ask the user for a concise architecture skeleton (components, key flows,
+   integrations) verbally—do **not** create a separate skeleton document. Keep
+   it minimal and confirm back with the user until approved.  
+3) After approval, the **main agent** (no sub-agents) compiles context and
+   prompts Codex to expand the approved skeleton into the full
+   `02-architecture.md`, attaching repo scan + requirements via
+   `@.claude/specs/{feature}/...`. Remind Codex to include the quality-score
+   placeholder and keep open questions visible.  
+4) After Codex writes `02-architecture.md`, review it carefully:
    - ensure it matches the approved scope
    - manually edit to fix inaccuracies or add missing clarifications
    - run the same 100-point rubric scoring as before (interpret Functional
      Clarity as clarity of responsibilities/flows)
    - if the score is <90, continue manual edits/clarifications (no further
      sub-agents) until ≥90.
-6) Embed the final score + assumptions section and ask the user:
+5) Embed the final score + assumptions section and ask the user:
 
 > Architecture is now ≥90/100 (expanded from the approved skeleton).  
 > Do you want to proceed to implementation with Codex?
 
-If the user declines or requests changes, return to step 2 or 3 instead of
-moving forward. Only proceed to implementation after explicit approval.
+If the user declines or requests changes, return to step 2 instead of moving
+forward. Only proceed to implementation after explicit approval.
 
 ## Constraints
 - English docs only; no code editing.
