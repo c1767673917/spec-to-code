@@ -44,10 +44,10 @@ graph LR
 
 ### 核心特性
 
-- **🎯 需求优先**：主智能体只用 sub-agent 生成初稿，之后手动澄清、修改、按 Rubric 评分，且每个阶段达到 ≥90 分并获得用户确认后才能继续
+- **🎯 需求优先**：主智能体亲自撰写需求，循环澄清、按 Rubric 评分到 ≥90 分并获得用户确认后再进入下一阶段
 - **🧠 Codex 全程**：所有代码实现、审查、测试都由 Codex Skill 完成，保证一致性
-- **🏗️ 架构护栏**：主智能体向用户口头确认极简架构骨架（不新增文档），再把经确认的骨架 + 需求 + 仓库上下文 @ 给 Codex 扩写完整架构
-- **🔍 Codex 复核规格**：需求/架构文档在实现前由 Codex 复核，提出改进意见
+- **🏗️ 架构护栏**：主智能体与用户共创骨架（组件划分、数据流、接口、技术选型），在此基础上直接撰写完整架构文档，再让 Codex 按 Rubric 评分到 ≥90 分
+- **🔍 Codex 复核规格**：需求/架构文档在实现前由 Codex 复核评分，提出改进意见
 - **✅ 质量门控**：90% 阈值 + 明确评分维度，严格禁止未确认假设
 - **📁 持久化**：所有文档统一存放在 `.claude/specs/`
 - **🔄 迭代优化**：自动循环澄清与修改，直到质量达标
@@ -57,10 +57,12 @@ graph LR
 
 | 智能体 | 职责 | 输出 |
 |--------|------|------|
-| **requirements-generate** | 协调 sub-agent 产出首稿，主导澄清/评分循环，设计架构骨架并让 Codex 扩写，手动校验到 ≥90 分并征求用户确认 | `.claude/specs/{feature}/01-requirements.md`、`.claude/specs/{feature}/02-architecture.md` |
+| **requirements-generate** | 主智能体直接撰写需求与架构文档：读取仓库扫描+用户输入澄清；亲自写需求文档并评分到 ≥90；与用户共创骨架后亲自写架构文档，先自评分到 ≥90，再让 Codex 按 rubric 评分到 ≥90，最后征求用户确认 | `.claude/specs/{feature}/01-requirements.md`、`.claude/specs/{feature}/02-architecture.md` |
 | **requirements-code** | 编排 Codex 完成全部代码与测试，实现 `codex-backend.md`（含结构化摘要）和必要的 `api-docs.md` | 代码改动 + Codex 文档 |
-| **requirements-review** | 并行运行 Codex + sub-agent 审查，由主智能体合并结果评分，<90 时驱动 Codex 修复后重审 | `.claude/specs/{feature}/codex-review.md` |
+| **requirements-review** | 并行运行 Codex 代码审查 + sub-agent 审查，由主智能体合并结果评分，<90 时驱动 Codex 修复后重审 | `.claude/specs/{feature}/codex-review.md` |
 | **requirements-testing** | 主智能体编排 Codex 运行/新增测试并记录结果 | `codex-backend.md`（测试部分）或 `dev-notes.md`（如需澄清） |
+
+> 说明：需求/架构文档完全由主智能体撰写。架构骨架在对话中确认后直接展开成 `02-architecture.md`，Codex 仅负责对架构按 rubric 评分/复核，以及后续所有代码改动。
 
 ### 工作流产物
 
@@ -70,7 +72,7 @@ graph LR
 .claude/specs/jwt-authentication/
 ├── 00-repo-scan.md        # 仓库扫描（若未跳过）
 ├── 01-requirements.md     # 需求文档（≥90，含评分与假设）
-├── 02-architecture.md     # 架构文档（由 Codex 扩写后手动审校，≥90）
+├── 02-architecture.md     # 架构文档（主代理撰写，主代理+Codex 评分均 ≥90）
 ├── dev-notes.md           # 如 Codex 新增行为需说明
 ├── codex-backend.md       # Codex 实现日志 + Structured Summary JSON
 ├── api-docs.md            # 若有 API 变更由 Codex 输出

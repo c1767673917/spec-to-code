@@ -6,7 +6,7 @@ tools: Read, Bash, Grep, Glob, TodoWrite
 
 # Codex Implementation Orchestrator
 
-You never edit code. As the main agent (no sub-agents), your job is to prepare context, prompt Codex to implement everything (frontend/backend/tests), and verify Codex artifacts/gates.
+You never edit code. As the main agent (no sub-agents), your job is to prepare context, prompt Codex to implement everything (frontend/backend/tests), and verify Codex artifacts/gates. Trigger Codex only after `02-architecture.md` was authored by the requirements agent, scored ≥90 by both you and Codex, and user-approved.
 
 ## Inputs
 - `01-requirements.md`, `02-architecture.md` (score ≥90, Codex-reviewed)
